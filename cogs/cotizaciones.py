@@ -1,4 +1,6 @@
 import io
+import re
+import unicodedata
 
 import discord
 from discord.ext import commands
@@ -11,7 +13,12 @@ import ia
 LINEA_ESTADO = {
     "pendiente": "⏳ **Esperando respuesta del cliente**",
     "no_avanzo": "❌ **No avanzó**",
+    "aceptada": "✅ **Aceptó**",
 }
+
+
+class ErrorAlta(Exception):
+    """Un problema que le avisamos al equipo tal cual, sin asustar con errores técnicos"""
 
 
 def es_canal_de_cotizaciones(canal) -> bool:
@@ -31,6 +38,44 @@ def cambiar_linea_estado(contenido: str, nueva_linea: str) -> str:
     return f"{nueva_linea}\n{resto}"
 
 
+async def texto_de_la_cotizacion(mensaje: discord.Message) -> str:
+    # El texto está en el bloque de código, o en el .txt si quedó largo
+    encontrado = re.search(r"```\n(.*?)\n```", mensaje.content, re.S)
+    if encontrado:
+        return encontrado.group(1)
+    if mensaje.attachments:
+        return (await mensaje.attachments[0].read()).decode("utf-8")
+    return ""
+
+
+def coberturas_del_mensaje(texto: str) -> list[str]:
+    # Sacamos las coberturas del mensaje que ya armó Cobi, así el menú abre al toque sin llamar a la IA
+    opciones = re.findall(r"^\* (.+?): \$", texto, re.M)
+    if not opciones:
+        # Cotización de una sola cobertura: viene como "🛡️ Cobertura: ..."
+        opciones = re.findall(r"^\S*\s*Cobertura: (.+)$", texto, re.M)
+    sin_repetir = dict.fromkeys(o.strip()[:100] for o in opciones)
+    return list(sin_repetir)[:25]
+
+
+def normalizar(texto: str) -> str:
+    # Sin tildes, sin emojis y en minúscula, para comparar nombres de etiquetas
+    sin_tildes = unicodedata.normalize("NFD", texto).encode("ascii", "ignore").decode()
+    return " ".join(sin_tildes.lower().split())
+
+
+def buscar_etiqueta(foro: discord.ForumChannel, nombre: str) -> discord.ForumTag | None:
+    # Comparamos "por adentro" así "Accidentes Personales" encuentra la etiqueta "👷 Accidentes Personal"
+    buscado = normalizar(nombre)
+    if not buscado:
+        return None
+    for etiqueta in foro.available_tags:
+        actual = normalizar(etiqueta.name)
+        if actual and (buscado in actual or actual in buscado):
+            return etiqueta
+    return None
+
+
 def botones_pendiente(cotizacion_id: int) -> discord.ui.View:
     vista = discord.ui.View(timeout=None)
     vista.add_item(BotonAcepto(cotizacion_id))
@@ -42,6 +87,89 @@ def botones_no_avanzo(cotizacion_id: int) -> discord.ui.View:
     vista = discord.ui.View(timeout=None)
     vista.add_item(BotonReabrir(cotizacion_id))
     return vista
+
+
+async def crear_alta(interaction: discord.Interaction, cotizacion_id: int, cobertura: str, cliente: str) -> discord.Thread:
+    foro = discord.utils.get(interaction.guild.forums, name=config.FORO_ALTAS)
+    if foro is None:
+        raise ErrorAlta(f"No encontré el foro **{config.FORO_ALTAS}** 🤔 Fijate que exista y que Cobi lo pueda ver.")
+
+    # Releemos el PDF del mensaje original para armar la cobertura elegida
+    cotizacion = db.obtener_cotizacion(cotizacion_id)
+    try:
+        canal = interaction.guild.get_channel_or_thread(cotizacion["canal_id"]) or await interaction.client.fetch_channel(cotizacion["canal_id"])
+        mensaje_pdf = await canal.fetch_message(cotizacion["mensaje_pdf_id"])
+    except discord.NotFound:
+        raise ErrorAlta("No encontré el mensaje con el PDF, ¿lo borraron? 🤔")
+    adjunto = discord.utils.get(mensaje_pdf.attachments, filename=cotizacion["pdf_nombre"])
+    if adjunto is None:
+        raise ErrorAlta("El mensaje de la cotización ya no tiene el PDF 🤔")
+
+    datos = await ia.generar_json([ia.pdf(await adjunto.read()), ia.leer_prompt("cobertura_elegida", cobertura=cobertura)])
+    mensaje = datos["mensaje"].replace("```", "").strip()
+
+    etiquetas = [e for e in (buscar_etiqueta(foro, config.ETIQUETA_ALTA_NUEVA), buscar_etiqueta(foro, datos.get("tipo", ""))) if e]
+    titulo = f"{cliente} – {datos['vehiculo_corto']} {datos['anio']} – {datos['compania']}"[:100]
+    encabezado = f"🧾 **Alta de {cliente}**\n📎 Cotización: {interaction.message.jump_url}\n\n🛡️ Cobertura elegida, lista para WhatsApp:"
+
+    contenido = f"{encabezado}\n```\n{mensaje}\n```"
+    if len(contenido) <= 2000:
+        creado = await foro.create_thread(name=titulo, content=contenido, applied_tags=etiquetas)
+    else:
+        archivo = discord.File(io.BytesIO(mensaje.encode("utf-8")), filename="cobertura_elegida.txt")
+        creado = await foro.create_thread(name=titulo, content=encabezado, file=archivo, applied_tags=etiquetas)
+
+    db.nueva_alta(cotizacion_id, cliente, datos["compania"], datos["vehiculo_corto"], str(datos["anio"]), datos.get("tipo", ""), cobertura, creado.thread.id)
+    return creado.thread
+
+
+class ModalAcepto(discord.ui.Modal, title="¡Aceptó! Armemos el alta"):
+    def __init__(self, cotizacion_id: int, coberturas: list[str]):
+        super().__init__()
+        self.cotizacion_id = cotizacion_id
+
+        # Si pudimos leer las coberturas va un menú; si no, que la escriban a mano
+        if coberturas:
+            self.cobertura = discord.ui.Select(options=[discord.SelectOption(label=c, value=c) for c in coberturas])
+        else:
+            self.cobertura = discord.ui.TextInput(placeholder="Por ejemplo: Terceros Completo", max_length=100)
+        self.add_item(discord.ui.Label(text="¿Qué cobertura eligió?", component=self.cobertura))
+
+        self.cliente = discord.ui.TextInput(placeholder="Por ejemplo: Pérez Juan", max_length=60)
+        self.add_item(discord.ui.Label(text="Apellido y nombre del cliente", component=self.cliente))
+
+    async def on_submit(self, interaction: discord.Interaction):
+        if isinstance(self.cobertura, discord.ui.Select):
+            cobertura = self.cobertura.values[0]
+        else:
+            cobertura = self.cobertura.value.strip()
+        cliente = self.cliente.value.strip()
+        quien = interaction.user.display_name
+
+        if not db.tomar_cotizacion(self.cotizacion_id, quien):
+            await interaction.response.send_message("Esta cotización ya no está pendiente 🤔", ephemeral=True)
+            return
+
+        # La IA tarda unos segundos: le avisamos a Discord que estamos laburando
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        try:
+            hilo = await crear_alta(interaction, self.cotizacion_id, cobertura, cliente)
+        except ErrorAlta as e:
+            db.cambiar_estado(self.cotizacion_id, "pendiente", quien)
+            await interaction.followup.send(str(e), ephemeral=True)
+            return
+        except Exception as e:
+            print(f"Error armando el alta de la cotización {self.cotizacion_id}: {e}")
+            db.cambiar_estado(self.cotizacion_id, "pendiente", quien)
+            await interaction.followup.send("Uy, algo falló armando el alta 😕 Probá de nuevo en un ratito.", ephemeral=True)
+            return
+
+        db.cambiar_estado(self.cotizacion_id, "aceptada", quien)
+        await interaction.message.edit(
+            content=cambiar_linea_estado(interaction.message.content, f"{LINEA_ESTADO['aceptada']} · {cliente} · lo marcó {quien} · {hilo.mention}"),
+            view=None,
+        )
+        await interaction.followup.send(f"Listo, armé el alta de **{cliente}** 👉 {hilo.mention}", ephemeral=True)
 
 
 # Cada botón lleva el número de cotización en su custom_id ("cotiz:acepto:12"),
@@ -60,8 +188,13 @@ class BotonAcepto(discord.ui.DynamicItem[discord.ui.Button], template=r"cotiz:ac
         return cls(int(match["id"]))
 
     async def callback(self, interaction: discord.Interaction):
-        # Esto es el paso 2: elegir cobertura, pedir el nombre y armar el hilo en altas
-        await interaction.response.send_message("Esto lo estamos armando, llega en el próximo paso 🚧", ephemeral=True)
+        cotizacion = db.obtener_cotizacion(self.cotizacion_id)
+        if cotizacion is None or cotizacion["estado"] != "pendiente":
+            await interaction.response.send_message("Esta cotización ya no está pendiente 🤔", ephemeral=True)
+            return
+
+        coberturas = coberturas_del_mensaje(await texto_de_la_cotizacion(interaction.message))
+        await interaction.response.send_modal(ModalAcepto(self.cotizacion_id, coberturas))
 
 
 class BotonNoAvanzo(discord.ui.DynamicItem[discord.ui.Button], template=r"cotiz:noavanzo:(?P<id>\d+)"):
@@ -143,8 +276,8 @@ class Cotizaciones(commands.Cog):
             vista = botones_pendiente(cotizacion_id)
 
             # Lo mandamos en un bloque de código así al copiarlo no se pierden los asteriscos de WhatsApp.
-            # Dejamos margen bajo los 2000 de Discord porque después le cambiamos la línea de estado
-            if len(texto) <= 1800:
+            # Dejamos margen bajo los 2000 de Discord porque después la línea de estado se alarga
+            if len(texto) <= 1700:
                 respuesta = await message.reply(
                     f"{LINEA_ESTADO['pendiente']}\n📲 Mensaje listo para WhatsApp:\n```\n{texto}\n```", view=vista,
                 )

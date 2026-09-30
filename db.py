@@ -27,6 +27,22 @@ def crear_tablas():
                 actualizada TEXT
             )
         """)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS altas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cotizacion_id INTEGER NOT NULL REFERENCES cotizaciones(id),
+                cliente TEXT NOT NULL,
+                compania TEXT,
+                vehiculo TEXT,
+                anio TEXT,
+                tipo TEXT,
+                cobertura TEXT,
+                hilo_id INTEGER,
+                estado TEXT NOT NULL DEFAULT 'esperando_docs',
+                creada TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+                actualizada TEXT
+            )
+        """)
 
 
 def nueva_cotizacion(canal_id: int, mensaje_pdf_id: int, pdf_nombre: str) -> int:
@@ -54,3 +70,23 @@ def cambiar_estado(cotizacion_id: int, estado: str, usuario: str):
             "UPDATE cotizaciones SET estado = ?, cambiado_por = ?, actualizada = datetime('now', 'localtime') WHERE id = ?",
             (estado, usuario, cotizacion_id),
         )
+
+
+def tomar_cotizacion(cotizacion_id: int, usuario: str) -> bool:
+    # La pasamos a "aceptando" solo si seguía pendiente. Si dos tocan Aceptó a la vez, gana uno solo
+    with closing(_conectar()) as con, con:
+        cursor = con.execute(
+            "UPDATE cotizaciones SET estado = 'aceptando', cambiado_por = ?, actualizada = datetime('now', 'localtime') "
+            "WHERE id = ? AND estado = 'pendiente'",
+            (usuario, cotizacion_id),
+        )
+        return cursor.rowcount == 1
+
+
+def nueva_alta(cotizacion_id: int, cliente: str, compania: str, vehiculo: str, anio: str, tipo: str, cobertura: str, hilo_id: int) -> int:
+    with closing(_conectar()) as con, con:
+        cursor = con.execute(
+            "INSERT INTO altas (cotizacion_id, cliente, compania, vehiculo, anio, tipo, cobertura, hilo_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (cotizacion_id, cliente, compania, vehiculo, anio, tipo, cobertura, hilo_id),
+        )
+        return cursor.lastrowid

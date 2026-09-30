@@ -16,12 +16,13 @@ Los clientes no entran al Discord: siguen hablando por WhatsApp. Cobi le deja al
 
 - **PDF de cotización → mensaje de WhatsApp.** Subís el PDF que devuelve la web de la compañía (Nación Seguros, ATM) en el canal `#cotizar`, y Cobi lo lee con IA y responde con un mensaje limpio: coberturas con nombres entendibles, precios en formato argentino y forma de pago. Llega en un bloque de código para que al copiarlo no se pierdan los asteriscos de WhatsApp.
 - **Seguimiento de cada cotización.** Abajo del mensaje hay botones `✅ Aceptó` y `❌ No avanzó`, y la primera línea muestra en qué quedó. Todo se guarda en una base SQLite y los botones siguen andando aunque Cobi se reinicie.
+- **Aceptó → alta.** Al tocar `✅ Aceptó` se abre una ventanita para elegir la cobertura y escribir el nombre del cliente. Cobi relee el PDF, arma el mensaje de "Cobertura elegida" y crea el hilo del alta en el foro `altas`, con título y etiquetas.
 - `/plantilla`: los mensajes predeterminados de la oficina al toque (requisitos de alta, confirmación de alta, etc.), listos para copiar. Si la plantilla nombra a la compañía, se elige al usar el comando.
 - `/hola` para ver si Cobi está vivo.
 
 ## Qué viene (V1)
 
-- **Aceptó → alta:** elegís la cobertura del PDF y el nombre del cliente, Cobi arma el mensaje de "Cobertura elegida" y crea el hilo del alta en el foro.
+- **Panel del alta:** botones tipo reproductor (`▶️ Siguiente`) que van guiando cada alta paso a paso.
 - **Lectura de documentos:** de la cédula saca patente, motor y chasis; del DNI, todos los datos. Después arma un texto con todo junto para cargar la solicitud en la web de la compañía.
 - **Fotos por ramo y compañía:** el predeterminado de fotos correcto según sea auto o moto, Nación o ATM.
 - **Cierre del alta:** pendiente de emisión o emitida, con alerta si el certificado está por vencer y la póliza todavía no salió.
