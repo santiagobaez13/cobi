@@ -8,24 +8,24 @@ Antes todo se manejaba con grupos de WhatsApp y planillas de Excel. Los datos, l
 
 ## La solución
 
-Cada cliente tiene su propio hilo en un foro de Discord (uno por área: cotizaciones, altas, siniestros y cobranzas). En el hilo queda todo junto: datos, fotos, PDFs y en qué estado está. Cobi trabaja adentro de esos hilos y hace lo repetitivo.
+Cobi guía al equipo paso a paso con botones, desde que llega la cotización hasta que la póliza queda emitida. Las cotizaciones entran por un canal de texto (la mayoría no avanza, así que no ensucian nada), y cuando el cliente acepta, cada alta pasa a tener su propio hilo en un foro de Discord, con todos sus datos juntos.
 
 Los clientes no entran al Discord: siguen hablando por WhatsApp. Cobi le deja al equipo los mensajes listos para copiar y mandar.
 
 ## Qué hace hoy
 
-- **PDF de cotización → mensaje de WhatsApp.** Subís el PDF que devuelve la web de la compañía (Nación Seguros, ATM) en un hilo del foro `cotizaciones`, y Cobi lo lee con IA y responde con un mensaje limpio: coberturas con nombres entendibles, precios en formato argentino y forma de pago. Llega en un bloque de código para que al copiarlo no se pierdan los asteriscos de WhatsApp.
+- **PDF de cotización → mensaje de WhatsApp.** Subís el PDF que devuelve la web de la compañía (Nación Seguros, ATM) en el canal `#cotizar`, y Cobi lo lee con IA y responde con un mensaje limpio: coberturas con nombres entendibles, precios en formato argentino y forma de pago. Llega en un bloque de código para que al copiarlo no se pierdan los asteriscos de WhatsApp.
+- **Seguimiento de cada cotización.** Abajo del mensaje hay botones `✅ Aceptó` y `❌ No avanzó`, y la primera línea muestra en qué quedó. Todo se guarda en una base SQLite y los botones siguen andando aunque Cobi se reinicie.
 - `/plantilla`: los mensajes predeterminados de la oficina al toque (requisitos de alta, confirmación de alta, etc.), listos para copiar. Si la plantilla nombra a la compañía, se elige al usar el comando.
 - `/hola` para ver si Cobi está vivo.
 
 ## Qué viene (V1)
 
-- `/elegida`: arma el mensaje de la cobertura que eligió el cliente, releyendo el PDF del hilo.
-- Botones para cambiar el estado de un hilo con un clic.
-- Lectura de cédula (patente, chasis, motor) y de CBU (banco), lista para copiar.
-- Checklist de fotos del vehículo: Cobi reconoce cuáles subieron y avisa cuáles faltan.
-- Alerta cuando un certificado de cobertura está por vencer y la póliza todavía no salió.
-- Mensajes de cobro por cliente a partir de la lista de cobros rechazados.
+- **Aceptó → alta:** elegís la cobertura del PDF y el nombre del cliente, Cobi arma el mensaje de "Cobertura elegida" y crea el hilo del alta en el foro.
+- **Lectura de documentos:** de la cédula saca patente, motor y chasis; del DNI, todos los datos. Después arma un texto con todo junto para cargar la solicitud en la web de la compañía.
+- **Fotos por ramo y compañía:** el predeterminado de fotos correcto según sea auto o moto, Nación o ATM.
+- **Cierre del alta:** pendiente de emisión o emitida, con alerta si el certificado está por vencer y la póliza todavía no salió.
+- **Cobros vencidos:** un mensaje por cliente a partir de la lista de cobros rechazados.
 
 ## Tecnologías
 
@@ -39,11 +39,12 @@ Los clientes no entran al Discord: siguen hablando por WhatsApp. Cobi le deja al
 main.py               ← arranca a Cobi y carga los cogs
 config.py             ← nombre de la empresa, canales y modelos de IA
 ia.py                 ← todo lo de la IA, con reintentos si está saturada
+db.py                 ← la base de datos (SQLite)
 prompts/              ← las instrucciones para la IA, en .txt
 plantillas/           ← los mensajes predeterminados, uno por archivo .md
 cogs/
   general.py          ← /hola
-  cotizaciones.py     ← PDF → mensaje de WhatsApp
+  cotizaciones.py     ← PDF → mensaje de WhatsApp + botones de seguimiento
   plantillas.py       ← /plantilla
 ```
 
@@ -89,4 +90,4 @@ Cada versión estable queda marcada con una etiqueta en GitHub (pestaña *Tags*)
 
 ## Privacidad
 
-En el repo solo está el código. Los datos de los clientes (PDFs, cédulas, fotos, CBU) viven en Discord y **nunca** se suben acá, ni siquiera para probar.
+En el repo solo está el código. Los datos de los clientes (PDFs, cédulas, fotos, CBU) viven en Discord y **nunca** se suben acá, ni siquiera para probar. La base de datos (`cobi.db`) también queda afuera del repo.

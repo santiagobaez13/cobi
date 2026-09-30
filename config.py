@@ -13,7 +13,7 @@ EMPRESA = "SER Seguros"
 COMPANIAS = ["Nación Seguros", "ATM Seguros"]
 
 # Los canales donde Cobi se fija si suben PDFs de cotizaciones
-CANALES_PDF = {"cotizaciones", "bot-pruebas"}
+CANALES_PDF = {"cotizar", "bot-pruebas"}
 
 # Modelos de Gemini: si el primero está saturado, pasamos al otro
 MODELOS = ["gemini-flash-latest", "gemini-flash-lite-latest"]

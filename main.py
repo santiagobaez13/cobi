@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 
 import config
+import db
 
 # Cada cog es un archivo de cogs/ con lo de un área (cotizaciones, altas, etc.)
 COGS = ["cogs.general", "cogs.cotizaciones", "cogs.plantillas"]
@@ -14,6 +15,7 @@ class Cobi(commands.Bot):
         super().__init__(command_prefix=commands.when_mentioned, intents=intents)
 
     async def setup_hook(self):
+        db.crear_tablas()
         for cog in COGS:
             await self.load_extension(cog)
         await self.tree.sync()
