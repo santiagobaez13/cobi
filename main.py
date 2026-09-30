@@ -4,7 +4,7 @@ from discord.ext import commands
 import config
 
 # Cada cog es un archivo de cogs/ con lo de un área (cotizaciones, altas, etc.)
-COGS = ["cogs.general", "cogs.cotizaciones"]
+COGS = ["cogs.general", "cogs.cotizaciones", "cogs.plantillas"]
 
 
 class Cobi(commands.Bot):

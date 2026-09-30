@@ -15,12 +15,12 @@ Los clientes no entran al Discord: siguen hablando por WhatsApp. Cobi le deja al
 ## Qué hace hoy
 
 - **PDF de cotización → mensaje de WhatsApp.** Subís el PDF que devuelve la web de la compañía (Nación Seguros, ATM) en un hilo del foro `cotizaciones`, y Cobi lo lee con IA y responde con un mensaje limpio: coberturas con nombres entendibles, precios en formato argentino y forma de pago. Llega en un bloque de código para que al copiarlo no se pierdan los asteriscos de WhatsApp.
+- `/plantilla`: los mensajes predeterminados de la oficina al toque (requisitos de alta, confirmación de alta, etc.), listos para copiar. Si la plantilla nombra a la compañía, se elige al usar el comando.
 - `/hola` para ver si Cobi está vivo.
 
 ## Qué viene (V1)
 
 - `/elegida`: arma el mensaje de la cobertura que eligió el cliente, releyendo el PDF del hilo.
-- `/plantilla`: los mensajes predeterminados al toque (requisitos de alta, confirmación, siniestros, etc.).
 - Botones para cambiar el estado de un hilo con un clic.
 - Lectura de cédula (patente, chasis, motor) y de CBU (banco), lista para copiar.
 - Checklist de fotos del vehículo: Cobi reconoce cuáles subieron y avisa cuáles faltan.
@@ -40,12 +40,14 @@ main.py               ← arranca a Cobi y carga los cogs
 config.py             ← nombre de la empresa, canales y modelos de IA
 ia.py                 ← todo lo de la IA, con reintentos si está saturada
 prompts/              ← las instrucciones para la IA, en .txt
+plantillas/           ← los mensajes predeterminados, uno por archivo .md
 cogs/
   general.py          ← /hola
   cotizaciones.py     ← PDF → mensaje de WhatsApp
+  plantillas.py       ← /plantilla
 ```
 
-Los prompts están en archivos aparte para poder ajustarlos sin tocar el código. Toda la IA pasa por `ia.py`, así el día que se cambie de proveedor se toca un solo archivo.
+Los prompts y las plantillas están en archivos aparte para poder ajustarlos sin tocar el código: para sumar una plantilla nueva alcanza con crear un `.md` en `plantillas/`. Toda la IA pasa por `ia.py`, así el día que se cambie de proveedor se toca un solo archivo.
 
 ## Cómo correrlo en local
 

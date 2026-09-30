@@ -9,6 +9,9 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 # El nombre de la productora, lo usan los prompts y los mensajes de Cobi. Si cambia, se toca acá y listo
 EMPRESA = "SER Seguros"
 
+# Las compañías con las que laburamos. Si se suma una, se agrega acá
+COMPANIAS = ["Nación Seguros", "ATM Seguros"]
+
 # Los canales donde Cobi se fija si suben PDFs de cotizaciones
 CANALES_PDF = {"cotizaciones", "bot-pruebas"}
 
