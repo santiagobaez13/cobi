@@ -5,7 +5,8 @@ import config
 import db
 
 # Cada cog es un archivo de cogs/ con lo de un área (cotizaciones, altas, etc.)
-COGS = ["cogs.general", "cogs.cotizaciones", "cogs.plantillas"]
+# El orden importa: altas usa cosas de plantillas, y cotizaciones usa cosas de altas
+COGS = ["cogs.general", "cogs.plantillas", "cogs.altas", "cogs.cotizaciones", "cogs.chat"]
 
 
 class Cobi(commands.Bot):

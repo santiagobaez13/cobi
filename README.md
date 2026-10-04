@@ -8,48 +8,72 @@ Antes todo se manejaba con grupos de WhatsApp y planillas de Excel. Los datos, l
 
 ## La solución
 
-Cobi guía al equipo paso a paso con botones, desde que llega la cotización hasta que la póliza queda emitida. Las cotizaciones entran por un canal de texto (la mayoría no avanza, así que no ensucian nada), y cuando el cliente acepta, cada alta pasa a tener su propio hilo en un foro de Discord, con todos sus datos juntos.
+Cobi guía al equipo paso a paso con botones, desde que llega la cotización hasta que la póliza queda emitida. Las cotizaciones entran por un canal de texto (la mayoría no avanza, así que no ensucian nada), y cuando el cliente acepta, cada alta pasa a tener su propio hilo en un foro de Discord, donde Cobi junta los datos que le van pasando y arma la solicitud lista para cargar.
 
 Los clientes no entran al Discord: siguen hablando por WhatsApp. Cobi le deja al equipo los mensajes listos para copiar y mandar.
 
 ## Qué hace hoy
 
-- **PDF de cotización → mensaje de WhatsApp.** Subís el PDF que devuelve la web de la compañía (Nación Seguros, ATM) en el canal `#cotizar`, y Cobi lo lee con IA y responde con un mensaje limpio: coberturas con nombres entendibles, precios en formato argentino y forma de pago. Llega en un bloque de código para que al copiarlo no se pierdan los asteriscos de WhatsApp.
-- **Seguimiento de cada cotización.** Abajo del mensaje hay botones `✅ Aceptó` y `❌ No avanzó`, y la primera línea muestra en qué quedó. Todo se guarda en una base SQLite y los botones siguen andando aunque Cobi se reinicie.
-- **Aceptó → alta.** Al tocar `✅ Aceptó` se abre una ventanita para elegir la cobertura y escribir el nombre del cliente. Cobi relee el PDF, arma el mensaje de "Cobertura elegida" y crea el hilo del alta en el foro `altas`, con título y etiquetas.
-- `/plantilla`: los mensajes predeterminados de la oficina al toque (requisitos de alta, confirmación de alta, etc.), listos para copiar. Si la plantilla nombra a la compañía, se elige al usar el comando.
-- `/hola` para ver si Cobi está vivo.
+**Cotizaciones (`#cotizar`)**
+- **PDF de cotización → mensaje de WhatsApp.** Subís el PDF que devuelve la web de la compañía (Nación Seguros, ATM) y Cobi lo lee con IA y responde con un mensaje limpio: coberturas con nombres entendibles, precios en formato argentino y forma de pago. Llega en un bloque de código para que al copiarlo no se pierdan los asteriscos de WhatsApp.
+- **Seguimiento.** Abajo del mensaje hay botones `✅ Aceptó` y `❌ No avanzó`. Los botones siguen andando aunque Cobi se reinicie.
+- **Aceptó → alta.** Se abre una ventanita para elegir la cobertura y cargar el nombre del cliente, el N° de solicitud y el teléfono. Cobi relee el PDF, arma el mensaje de "Cobertura elegida" y crea el hilo del alta en el foro `altas`, con título y etiquetas. Si la cotización trae GNC, lo tiene en cuenta.
 
-## Qué viene (V1)
+**Altas (foro `altas`): una lista de tareas viva**
+- Al crear el hilo, Cobi manda los requisitos para el cliente (la imagen de la oficina + un texto corto), según compañía y si es auto o moto.
+- Abajo deja **una sola lista** que se va tildando sola y siempre queda al final del hilo: DNI, cédula, GNC, forma de pago, mail, teléfono, N° de solicitud y fotos.
+- El productor le va pasando a Cobi lo que le llega por WhatsApp, en el orden que sea:
+  - **Imágenes** de DNI, cédula, cédula y oblea de GNC, CBU o tarjeta: Cobi las lee con IA.
+  - **Texto**, incluso pegado de WhatsApp: mail, teléfono, CBU (con o sin banco), N° de solicitud.
+- **La solicitud en texto plano** está adentro de la lista y se completa a medida que llegan los datos, lista para copiar en la web de la compañía.
+- **Controles:** CBU con dígitos verificadores, banco según el número, aviso de CVU, y la cédula comparada contra el vehículo cotizado.
+- **Botones:** `✍️ Cargar a mano`, `⏭️ Omitir` (lo que no hace falta), `📸 Fotos listas`, y el cierre: `⏳ Pendiente de emisión` / `✅ Emitida`, según cómo trabaje cada compañía.
+- Lo que falta nunca frena: Cobi sigue y lo deja como nota.
 
-- **Panel del alta:** botones tipo reproductor (`▶️ Siguiente`) que van guiando cada alta paso a paso.
-- **Lectura de documentos:** de la cédula saca patente, motor y chasis; del DNI, todos los datos. Después arma un texto con todo junto para cargar la solicitud en la web de la compañía.
-- **Fotos por ramo y compañía:** el predeterminado de fotos correcto según sea auto o moto, Nación o ATM.
-- **Cierre del alta:** pendiente de emisión o emitida, con alerta si el certificado está por vencer y la póliza todavía no salió.
+**Pendientes de emisión (`#pendientes-emision`)**
+- Una tarjeta por cada alta que espera la póliza, con los días que lleva y cuándo vence el certificado. Desde la tarjeta se marca como emitida y desaparece.
+- Si a los 10 días sigue pendiente, aviso en `#alertas`.
+
+**Buscador (`#cobi`)**
+- "che cobi, patente 329jsp, ¿qué alta fue?": busca por patente, DNI, N° de solicitud, teléfono o apellido y responde con el link al hilo y su estado. Busca directo en la base, sin IA.
+
+**Otros**
+- `/plantilla`: los mensajes predeterminados de la oficina al toque, con su imagen si la tienen.
+- `/panel`: vuelve a poner la lista del alta al final del hilo.
+
+## Qué viene
+
 - **Cobros vencidos:** un mensaje por cliente a partir de la lista de cobros rechazados.
+- **Siniestros:** el predeterminado de datos para pedirle al cliente.
+- Pasar a un plan pago de IA antes de usarlo con datos reales.
 
 ## Tecnologías
 
 - Python 3.11
 - [discord.py](https://discordpy.readthedocs.io/)
 - Google Gemini (`google-genai`) para leer PDFs e imágenes
+- SQLite
 
 ## Estructura
 
 ```
 main.py               ← arranca a Cobi y carga los cogs
-config.py             ← nombre de la empresa, canales y modelos de IA
+config.py             ← empresa, compañías, canales, alertas y modelos de IA
 ia.py                 ← todo lo de la IA, con reintentos si está saturada
 db.py                 ← la base de datos (SQLite)
+documentos.py         ← lectura de documentos, CBU, bancos y datos escritos
+util.py               ← cositas compartidas (nombres, etiquetas)
 prompts/              ← las instrucciones para la IA, en .txt
-plantillas/           ← los mensajes predeterminados, uno por archivo .md
+plantillas/           ← los mensajes predeterminados (.md) y sus imágenes
 cogs/
   general.py          ← /hola
-  cotizaciones.py     ← PDF → mensaje de WhatsApp + botones de seguimiento
+  cotizaciones.py     ← #cotizar: PDF → WhatsApp, Aceptó → alta
+  altas.py            ← la lista de tareas del alta, #pendientes-emision y alertas
   plantillas.py       ← /plantilla
+  chat.py             ← el buscador de #cobi
 ```
 
-Los prompts y las plantillas están en archivos aparte para poder ajustarlos sin tocar el código: para sumar una plantilla nueva alcanza con crear un `.md` en `plantillas/`. Toda la IA pasa por `ia.py`, así el día que se cambie de proveedor se toca un solo archivo.
+Los prompts y las plantillas están en archivos aparte para poder ajustarlos sin tocar el código: para sumar una plantilla nueva alcanza con crear un `.md` en `plantillas/` (y si lleva imagen, ponerla al lado con el mismo nombre). Toda la IA pasa por `ia.py`, así el día que se cambie de proveedor se toca un solo archivo. Cómo trabaja cada compañía en el alta se configura en `COMPANIAS_ALTA` de `config.py`.
 
 ## Cómo correrlo en local
 
@@ -75,7 +99,7 @@ Los prompts y las plantillas están en archivos aparte para poder ajustarlos sin
 - Scopes: `bot` y `applications.commands`.
 - Permisos: ver canales, enviar mensajes (también en hilos), gestionar hilos, insertar enlaces, adjuntar archivos, leer el historial, añadir reacciones y usar comandos de barra.
 
-Para cambiar el nombre de la empresa o los canales donde Cobi lee PDFs, se toca `config.py`.
+Canales que usa Cobi: `#cotizar`, el foro `altas`, `#pendientes-emision`, `#alertas` y `#cobi`. Los nombres se cambian en `config.py` (los emojis en el nombre del canal no molestan).
 
 ## Deploy
 

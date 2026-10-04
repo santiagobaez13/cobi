@@ -8,6 +8,7 @@ from discord.ext import commands
 import config
 
 CARPETA_PLANTILLAS = Path(__file__).parent.parent / "plantillas"
+EXTENSIONES_IMAGEN = (".png", ".jpg", ".jpeg", ".webp")
 
 
 def plantillas_disponibles() -> dict[str, Path]:
@@ -16,6 +17,24 @@ def plantillas_disponibles() -> dict[str, Path]:
         archivo.stem.replace("_", " ").capitalize(): archivo
         for archivo in sorted(CARPETA_PLANTILLAS.glob("*.md"))
     }
+
+
+def leer_plantilla(nombre_archivo: str, compania: str | None = None) -> str | None:
+    # Para el panel del alta: busca "fotos_auto.md" y compañía; si no existe devuelve None
+    archivo = CARPETA_PLANTILLAS / f"{nombre_archivo}.md"
+    if not archivo.is_file():
+        return None
+    texto = archivo.read_text(encoding="utf-8").strip()
+    return texto.replace("{compania}", compania) if compania else texto
+
+
+def imagen_plantilla(nombre_archivo: str) -> discord.File | None:
+    # Si al lado del .md hay una imagen con el mismo nombre ("requisitos_alta_auto.jpeg"), va adjunta
+    for extension in EXTENSIONES_IMAGEN:
+        imagen = CARPETA_PLANTILLAS / f"{nombre_archivo}{extension}"
+        if imagen.is_file():
+            return discord.File(imagen)
+    return None
 
 
 class Plantillas(commands.Cog):
@@ -38,11 +57,12 @@ class Plantillas(commands.Cog):
             texto = texto.replace("{compania}", compania)
 
         # Igual que en cotizaciones: en bloque de código para que no se rompa el formato al copiar
+        adjuntos = [imagen] if (imagen := imagen_plantilla(archivo.stem)) else []
         if len(texto) <= 1900:
-            await interaction.response.send_message(f"📋 **{cual}**\n```\n{texto}\n```")
+            await interaction.response.send_message(f"📋 **{cual}**\n```\n{texto}\n```", files=adjuntos)
         else:
-            archivo_txt = discord.File(io.BytesIO(texto.encode("utf-8")), filename=f"{archivo.stem}.txt")
-            await interaction.response.send_message(f"📋 **{cual}** (quedó larga, va en archivo):", file=archivo_txt)
+            adjuntos.append(discord.File(io.BytesIO(texto.encode("utf-8")), filename=f"{archivo.stem}.txt"))
+            await interaction.response.send_message(f"📋 **{cual}** (quedó larga, va en archivo):", files=adjuntos)
 
     @plantilla.autocomplete("cual")
     async def autocompletar_cual(self, interaction: discord.Interaction, actual: str):

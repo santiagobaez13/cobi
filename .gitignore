@@ -3,3 +3,5 @@ venv/
 backups/
 __pycache__/
 *.db
+material/
+desktop.ini

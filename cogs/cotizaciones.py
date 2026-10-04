@@ -1,6 +1,5 @@
 import io
 import re
-import unicodedata
 
 import discord
 from discord.ext import commands
@@ -8,6 +7,8 @@ from discord.ext import commands
 import config
 import db
 import ia
+from cogs.altas import iniciar_alta
+from util import buscar_etiqueta, mismo_nombre
 
 # La primera línea del mensaje de Cobi muestra en qué quedó la cotización
 LINEA_ESTADO = {
@@ -24,8 +25,8 @@ class ErrorAlta(Exception):
 def es_canal_de_cotizaciones(canal) -> bool:
     # Si es un hilo nos fijamos en el canal de arriba, así también anda en hilos de #bot-pruebas
     if isinstance(canal, discord.Thread) and canal.parent:
-        return canal.parent.name in config.CANALES_PDF
-    return getattr(canal, "name", "") in config.CANALES_PDF
+        canal = canal.parent
+    return any(mismo_nombre(getattr(canal, "name", ""), nombre) for nombre in config.CANALES_PDF)
 
 
 async def armar_mensaje(pdf_bytes: bytes) -> str:
@@ -58,24 +59,6 @@ def coberturas_del_mensaje(texto: str) -> list[str]:
     return list(sin_repetir)[:25]
 
 
-def normalizar(texto: str) -> str:
-    # Sin tildes, sin emojis y en minúscula, para comparar nombres de etiquetas
-    sin_tildes = unicodedata.normalize("NFD", texto).encode("ascii", "ignore").decode()
-    return " ".join(sin_tildes.lower().split())
-
-
-def buscar_etiqueta(foro: discord.ForumChannel, nombre: str) -> discord.ForumTag | None:
-    # Comparamos "por adentro" así "Accidentes Personales" encuentra la etiqueta "👷 Accidentes Personal"
-    buscado = normalizar(nombre)
-    if not buscado:
-        return None
-    for etiqueta in foro.available_tags:
-        actual = normalizar(etiqueta.name)
-        if actual and (buscado in actual or actual in buscado):
-            return etiqueta
-    return None
-
-
 def botones_pendiente(cotizacion_id: int) -> discord.ui.View:
     vista = discord.ui.View(timeout=None)
     vista.add_item(BotonAcepto(cotizacion_id))
@@ -89,8 +72,8 @@ def botones_no_avanzo(cotizacion_id: int) -> discord.ui.View:
     return vista
 
 
-async def crear_alta(interaction: discord.Interaction, cotizacion_id: int, cobertura: str, cliente: str) -> discord.Thread:
-    foro = discord.utils.get(interaction.guild.forums, name=config.FORO_ALTAS)
+async def crear_alta(interaction: discord.Interaction, cotizacion_id: int, cobertura: str, cliente: str, telefono: str, n_solicitud: str) -> discord.Thread:
+    foro = discord.utils.find(lambda f: mismo_nombre(f.name, config.FORO_ALTAS), interaction.guild.forums)
     if foro is None:
         raise ErrorAlta(f"No encontré el foro **{config.FORO_ALTAS}** 🤔 Fijate que exista y que Cobi lo pueda ver.")
 
@@ -108,7 +91,7 @@ async def crear_alta(interaction: discord.Interaction, cotizacion_id: int, cober
     datos = await ia.generar_json([ia.pdf(await adjunto.read()), ia.leer_prompt("cobertura_elegida", cobertura=cobertura)])
     mensaje = datos["mensaje"].replace("```", "").strip()
 
-    etiquetas = [e for e in (buscar_etiqueta(foro, config.ETIQUETA_ALTA_NUEVA), buscar_etiqueta(foro, datos.get("tipo", ""))) if e]
+    etiquetas = [e for e in (buscar_etiqueta(foro, config.ETIQUETAS_ALTA["esperando_docs"]), buscar_etiqueta(foro, datos.get("tipo", ""))) if e]
     titulo = f"{cliente} – {datos['vehiculo_corto']} {datos['anio']} – {datos['compania']}"[:100]
     encabezado = f"🧾 **Alta de {cliente}**\n📎 Cotización: {interaction.message.jump_url}\n\n🛡️ Cobertura elegida, lista para WhatsApp:"
 
@@ -119,7 +102,13 @@ async def crear_alta(interaction: discord.Interaction, cotizacion_id: int, cober
         archivo = discord.File(io.BytesIO(mensaje.encode("utf-8")), filename="cobertura_elegida.txt")
         creado = await foro.create_thread(name=titulo, content=encabezado, file=archivo, applied_tags=etiquetas)
 
-    db.nueva_alta(cotizacion_id, cliente, datos["compania"], datos["vehiculo_corto"], str(datos["anio"]), datos.get("tipo", ""), cobertura, creado.thread.id)
+    alta_id = db.nueva_alta(
+        cotizacion_id, cliente, datos["compania"], datos["vehiculo_corto"], str(datos["anio"]), datos.get("tipo", ""), cobertura,
+        creado.thread.id, gnc=bool(datos.get("gnc")), datos={"telefono": telefono} if telefono else None,
+    )
+    if n_solicitud:
+        db.actualizar_alta(alta_id, n_solicitud=n_solicitud)
+    await iniciar_alta(creado.thread, alta_id)
     return creado.thread
 
 
@@ -138,12 +127,22 @@ class ModalAcepto(discord.ui.Modal, title="¡Aceptó! Armemos el alta"):
         self.cliente = discord.ui.TextInput(placeholder="Por ejemplo: Pérez Juan", max_length=60)
         self.add_item(discord.ui.Label(text="Apellido y nombre del cliente", component=self.cliente))
 
+        # El N° de solicitud sale apenas abrís el alta en la web de la compañía
+        self.solicitud = discord.ui.TextInput(placeholder="El que te dio la web de la compañía", max_length=30, required=False)
+        self.add_item(discord.ui.Label(text="N° de solicitud", description="Si todavía no lo tenés, lo pasás después", component=self.solicitud))
+
+        # El teléfono lo tenés a mano del WhatsApp; si no, se carga después en el hilo
+        self.telefono = discord.ui.TextInput(placeholder="Por ejemplo: 11 2345-6789", max_length=30, required=False)
+        self.add_item(discord.ui.Label(text="Teléfono (WhatsApp)", description="Opcional, lo podés pasar después", component=self.telefono))
+
     async def on_submit(self, interaction: discord.Interaction):
         if isinstance(self.cobertura, discord.ui.Select):
             cobertura = self.cobertura.values[0]
         else:
             cobertura = self.cobertura.value.strip()
         cliente = self.cliente.value.strip()
+        telefono = self.telefono.value.strip()
+        n_solicitud = self.solicitud.value.strip()
         quien = interaction.user.display_name
 
         if not db.tomar_cotizacion(self.cotizacion_id, quien):
@@ -153,7 +152,7 @@ class ModalAcepto(discord.ui.Modal, title="¡Aceptó! Armemos el alta"):
         # La IA tarda unos segundos: le avisamos a Discord que estamos laburando
         await interaction.response.defer(ephemeral=True, thinking=True)
         try:
-            hilo = await crear_alta(interaction, self.cotizacion_id, cobertura, cliente)
+            hilo = await crear_alta(interaction, self.cotizacion_id, cobertura, cliente, telefono, n_solicitud)
         except ErrorAlta as e:
             db.cambiar_estado(self.cotizacion_id, "pendiente", quien)
             await interaction.followup.send(str(e), ephemeral=True)

@@ -28,6 +28,11 @@ def pdf(datos: bytes):
     return types.Part.from_bytes(data=datos, mime_type="application/pdf")
 
 
+def imagen(datos: bytes, tipo: str):
+    # tipo es el mime de la imagen, por ejemplo "image/jpeg"
+    return types.Part.from_bytes(data=datos, mime_type=tipo)
+
+
 async def generar_json(contenido: list) -> dict:
     return json.loads(await generar(contenido, _config_json))
 
@@ -35,20 +40,29 @@ async def generar_json(contenido: list) -> dict:
 async def generar(contenido: list, ajustes=_config_texto) -> str:
     ultimo_error = None
 
-    for modelo in config.MODELOS:
-        for intento in range(config.INTENTOS_POR_MODELO):
+    # Si un modelo está saturado pasamos enseguida al otro, y recién después de probar
+    # todos esperamos un toque y arrancamos otra vuelta
+    for vuelta in range(config.VUELTAS_DE_REINTENTO):
+        for modelo in config.MODELOS:
             try:
-                respuesta = await _cliente.aio.models.generate_content(
-                    model=modelo, contents=contenido, config=ajustes
+                respuesta = await asyncio.wait_for(
+                    _cliente.aio.models.generate_content(model=modelo, contents=contenido, config=ajustes),
+                    timeout=config.ESPERA_MAXIMA_IA,
                 )
                 return (respuesta.text or "").strip()
+            except asyncio.TimeoutError as e:
+                ultimo_error = e
+                print(f"{modelo} no contestó en {config.ESPERA_MAXIMA_IA}s, pruebo con el siguiente...")
             except Exception as e:
                 ultimo_error = e
                 saturado = any(c in str(e) for c in ("503", "429", "UNAVAILABLE", "RESOURCE_EXHAUSTED"))
                 if not saturado:
                     raise
-                espera = 2 * (intento + 1)
-                print(f"{modelo} saturado (intento {intento + 1}), reintento en {espera}s...")
-                await asyncio.sleep(espera)
+                print(f"{modelo} saturado, pruebo con el siguiente...")
+
+        if vuelta < config.VUELTAS_DE_REINTENTO - 1:
+            espera = 3 * (vuelta + 1)
+            print(f"Todos los modelos saturados, otra vuelta en {espera}s...")
+            await asyncio.sleep(espera)
 
     raise ultimo_error

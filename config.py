@@ -12,13 +12,51 @@ EMPRESA = "SER Seguros"
 # Las compañías con las que laburamos. Si se suma una, se agrega acá
 COMPANIAS = ["Nación Seguros", "ATM Seguros"]
 
+# Canal donde Cobi deja una tarjeta por cada alta pendiente de emisión (se borra cuando se emite)
+CANAL_PENDIENTES = "pendientes-emision"
+
+# Canal para preguntarle cosas a Cobi ("che cobi, patente 329jsp, ¿qué alta fue?")
+CANAL_CHAT = "cobi"
+
+# Alerta de certificados: si un alta sigue pendiente de emisión a los X días, Cobi avisa en este canal.
+# El certificado de cobertura vale VIGENCIA_CERTIFICADO días
+CANAL_ALERTAS = "alertas"
+DIAS_ALERTA_CERTIFICADO = 10
+VIGENCIA_CERTIFICADO = 15
+
+# Cómo trabaja cada compañía en el alta. La clave es la primera palabra del nombre, sin tildes ("nacion", "atm").
+# - tarea_fotos: cómo se llama el tilde de las fotos en la lista
+# - fotos: qué te dice Cobi cuando ya cargaste la solicitud y faltan las fotos ({solicitud} = el N° de solicitud)
+# - emision_inmediata: si la póliza sale en el momento, el cierre ofrece solo "Emitida"
+COMPANIAS_ALTA = {
+    "atm": {
+        "tarea_fotos": "Fotos cargadas en la web",
+        "fotos": "Cargá las fotos en la web de ATM (tienen que estar **fechadas**) y tocá **Continuar inspección**. Cuando termines, marcá 📸 Fotos listas.",
+        "emision_inmediata": True,
+    },
+    "nacion": {
+        "tarea_fotos": "Fotos enviadas por mail",
+        "fotos": "Mandá las fotos por mail a Nación con el N° de solicitud {solicitud}. Cuando termines, marcá 📸 Fotos listas.",
+        "emision_inmediata": False,
+    },
+}
+
 # Los canales donde Cobi se fija si suben PDFs de cotizaciones
 CANALES_PDF = {"cotizar", "bot-pruebas"}
 
-# El foro donde Cobi abre un hilo por cada alta, y con qué etiqueta de estado arranca
+# El foro donde Cobi abre un hilo por cada alta
 FORO_ALTAS = "altas"
-ETIQUETA_ALTA_NUEVA = "Esperando docs"
+
+# Las etiquetas de estado del foro de altas. Cobi las va cambiando solo a medida que avanza la lista
+ETIQUETAS_ALTA = {
+    "esperando_docs": "Esperando docs",
+    "cargada": "Cargada en web",
+    "fotos": "Fotos enviadas",
+    "emitida": "Póliza emitida",
+}
 
 # Modelos de Gemini: si el primero está saturado, pasamos al otro
 MODELOS = ["gemini-flash-latest", "gemini-flash-lite-latest"]
-INTENTOS_POR_MODELO = 3
+# Cuántas vueltas por todos los modelos antes de rendirse, y cuántos segundos le damos a cada intento
+VUELTAS_DE_REINTENTO = 3
+ESPERA_MAXIMA_IA = 60

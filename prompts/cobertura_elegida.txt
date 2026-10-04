@@ -5,6 +5,7 @@ Respondé ÚNICAMENTE con un JSON con estas claves:
 - "vehiculo_corto": marca y modelo, corto y con mayúsculas normales (por ejemplo "Renault Kangoo", "Volkswagen Gol", "Honda Wave"). Sin versión, motor ni equipamiento.
 - "anio": el año del vehículo.
 - "tipo": uno de estos valores exactos: "Auto", "Moto", "Accidentes Personales" o "Bicicleta".
+- "gnc": true si el PDF tiene GNC asegurado (equipo de GNC con suma asegurada), false si no.
 - "mensaje": el mensaje de WhatsApp para el cliente con la cobertura elegida, siguiendo EXACTAMENTE este formato:
 
 Compañía: [Compañía]

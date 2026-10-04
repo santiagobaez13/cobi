@@ -50,7 +50,9 @@ REGLAS:
   ✔️ [un beneficio por línea]
   💳 Valor: $[premio] por [período]
   Si el PDF aclara que incluye seguro de vida, sumalo como un ✔️ más.
-- Para débito en CBU poné "Débito Automático"; para tarjeta, "Tarjeta de Crédito".
+- Para débito en CBU poné "Débito Automático" (aunque el PDF diga cosas como "CBU (CVU no habilitadas)"); para tarjeta, "Tarjeta de Crédito".
+- Una sola línea de 💳 Forma de pago, aunque el PDF repita la forma de pago en varios lugares.
+- Todas las compañías (Nación, ATM o la que sea) van con el mismo formato del ejemplo: un precio por cobertura con su período, sin detallar cantidad de cuotas ni vigencias técnicas.
 - No incluyas datos del tomador ni del productor.
 - No inventes nada que no esté en el PDF.
 - Respondé únicamente con el mensaje, sin comentarios.
