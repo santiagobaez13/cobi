@@ -91,7 +91,7 @@ Los prompts y las plantillas están en archivos aparte para poder ajustarlos sin
    python main.py
    ```
 
-⚠️ Si Cobi también está prendido en el servidor, apagalo mientras probás en local. Si corren los dos a la vez, responde todo duplicado.
+⚠️ Si Cobi también está prendido en el servidor, apagalo mientras probás en local (`sudo systemctl stop cobi`). Si corren los dos a la vez, responde todo duplicado.
 
 ### Configuración del bot en Discord
 
@@ -103,7 +103,12 @@ Canales que usa Cobi: `#cotizar`, el foro `altas`, `#pendientes-emision`, `#aler
 
 ## Deploy
 
-Cobi corre en [Wispbyte](https://wispbyte.com/). Los archivos se suben a mano desde el panel, el archivo principal tiene que llamarse `main.py` y las claves se cargan en el editor de `.env` del panel. **Nunca se suben `venv/` ni `.env`.**
+Cobi corre en un servidor propio (Oracle Cloud, Ubuntu) como servicio de systemd, así arranca solo y se levanta si se cae. Los archivos del servidor están en `servidor/`:
+
+- `cobi.service`: el servicio de systemd.
+- `actualizar.sh`: baja el código nuevo de GitHub, instala dependencias y reinicia a Cobi.
+
+El `.env` se copia al servidor a mano (por `scp`), **nunca** por GitHub.
 
 ## Versiones
 
