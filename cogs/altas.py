@@ -11,7 +11,7 @@ import config
 import db
 import documentos
 from cogs.plantillas import imagen_plantilla, leer_plantilla
-from util import buscar_etiqueta, clave_compania, mismo_nombre, normalizar, slug
+from util import ahora, buscar_etiqueta, clave_compania, mismo_nombre, normalizar, slug
 
 # Cómo guardamos las fechas en la base
 FORMATO_FECHA = "%Y-%m-%d %H:%M:%S"
@@ -337,9 +337,13 @@ async def leer_imagenes(message: discord.Message, alta) -> tuple[dict, list[str]
             print(f"Error leyendo documentos del alta {alta['id']}: {e}")
             return {}, ["Uy, no pude leer esas imágenes 😕 Probá pasármelas de nuevo en un ratito."]
 
-    nuevos, avisos = {}, []
+    nuevos, avisos, otros = {}, [], []
     caras_gnc = int(db.datos_alta(alta).get("gnc_cedula_caras", 0))
     for doc in leidos:
+        if doc["tipo"] not in documentos.CLAVES or doc["tipo"] == "otro":
+            # No es un documento: nos guardamos qué es para contárselo al productor
+            otros.append(doc["datos"].get("que_es") or "una foto que no es un documento")
+            continue
         if doc["tipo"] == "gnc_cedula":
             caras_gnc += 1
             nuevos["gnc_cedula_caras"] = str(caras_gnc)
@@ -356,6 +360,15 @@ async def leer_imagenes(message: discord.Message, alta) -> tuple[dict, list[str]
         # El número de la tarjeta no lo guardamos: te lo pasamos una vez para que lo copies
         if numero := re.sub(r"\D", "", doc["datos"].get("tarjeta_numero", "")):
             avisos.append(f"💳 Número de la tarjeta para copiar (no lo guardo, por seguridad):\n```\n{numero}\n```")
+
+    # Si no había ningún documento, le decimos qué vimos en vez de dejarlo con la duda
+    if otros and not nuevos:
+        aviso = f"🤔 Eso no es un documento que yo lea: parece {enumerar(otros)}."
+        if any("gnc" in normalizar(o) for o in otros):
+            aviso += " La **oblea de GNC** es la calcomanía pegada en el parabrisas, y la **cédula de GNC** es la tarjeta del equipo (de los dos lados)."
+        else:
+            aviso += " Si son fotos del vehículo, van para la compañía; para la solicitud no las necesito."
+        avisos.append(aviso)
     return nuevos, avisos
 
 
@@ -561,20 +574,20 @@ class BotonAlta(discord.ui.DynamicItem[discord.ui.Button], template=r"alta:(?P<a
             await adoptar_panel(interaction, alta)
             return
 
-        ahora = datetime.now().strftime(FORMATO_FECHA)
+        momento = ahora().strftime(FORMATO_FECHA)
         if self.accion == "fotos":
-            db.sumar_datos_alta(self.alta_id, {"fotos": ahora})
+            db.sumar_datos_alta(self.alta_id, {"fotos": momento})
         elif self.accion == "pendiente":
             if alta["estado"] not in ("en_curso", "esperando_docs"):
                 await interaction.response.send_message("Esta alta ya cambió de estado 🤔", ephemeral=True)
                 return
-            db.actualizar_alta(self.alta_id, estado="pendiente_emision", pendiente_desde=ahora)
+            db.actualizar_alta(self.alta_id, estado="pendiente_emision", pendiente_desde=momento)
         elif self.accion == "emitida":
             if alta["estado"] == "emitida":
                 await interaction.response.send_message("Ya estaba emitida 👍", ephemeral=True)
                 await sincronizar_tarjeta(interaction.client, self.alta_id)
                 return
-            db.actualizar_alta(self.alta_id, estado="emitida", emitida_en=ahora)
+            db.actualizar_alta(self.alta_id, estado="emitida", emitida_en=momento)
 
         # Primero le avisamos a Discord que lo recibimos (tiene 3 segundos de paciencia) y después acomodamos todo
         await interaction.response.defer()
@@ -625,7 +638,7 @@ async def buscar_hilo(bot, hilo_id: int) -> discord.Thread | None:
 
 def texto_tarjeta(alta) -> str:
     desde = datetime.strptime(alta["pendiente_desde"], FORMATO_FECHA)
-    dias = (datetime.now() - desde).days
+    dias = (ahora() - desde).days
     vence = desde + timedelta(days=config.VIGENCIA_CERTIFICADO)
     marca = "🔴" if dias >= config.DIAS_ALERTA_CERTIFICADO else "⏳"
     hace = "desde hoy" if dias == 0 else ("hace 1 día" if dias == 1 else f"hace {dias} días")
@@ -699,7 +712,7 @@ class Altas(commands.Cog):
             except discord.HTTPException as e:
                 print(f"No pude actualizar la tarjeta del alta {alta['id']}: {e}")
 
-        limite = (datetime.now() - timedelta(days=config.DIAS_ALERTA_CERTIFICADO)).strftime(FORMATO_FECHA)
+        limite = (ahora() - timedelta(days=config.DIAS_ALERTA_CERTIFICADO)).strftime(FORMATO_FECHA)
         altas = db.altas_para_alertar(limite)
         if not altas:
             return
@@ -718,7 +731,7 @@ class Altas(commands.Cog):
                     f"(N° de solicitud {alta['n_solicitud'] or '?'}) y el certificado vence el **{vence:%d/%m/%Y}**. "
                     f"Hay que reclamarle la póliza a la compañía.\n👉 <#{alta['hilo_id']}>"
                 )
-                db.actualizar_alta(alta["id"], alerta_enviada=datetime.now().strftime(FORMATO_FECHA))
+                db.actualizar_alta(alta["id"], alerta_enviada=ahora().strftime(FORMATO_FECHA))
             except discord.HTTPException as e:
                 print(f"No pude mandar la alerta del alta {alta['id']}: {e}")
 

@@ -1,3 +1,3 @@
-discord.py
-python-dotenv
-google-genai
+discord.py==2.7.1
+python-dotenv==1.2.3
+google-genai==2.25.0

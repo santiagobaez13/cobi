@@ -1,7 +1,17 @@
 import re
 import unicodedata
+from datetime import datetime, timedelta, timezone
 
 import discord
+
+# Argentina es UTC-3 todo el año (no hay horario de verano). Los servidores suelen estar en UTC,
+# así que siempre pedimos la hora de acá, esté donde esté Cobi
+HORA_ARGENTINA = timezone(timedelta(hours=-3))
+
+
+def ahora() -> datetime:
+    # La hora argentina, sin zona pegada (así se compara con las fechas que ya están guardadas en la base)
+    return datetime.now(HORA_ARGENTINA).replace(tzinfo=None)
 
 
 def normalizar(texto: str) -> str:

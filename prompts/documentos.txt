@@ -10,7 +10,7 @@ Respondé ÚNICAMENTE con un JSON con la clave "documentos": una lista con un el
   - gnc_oblea (oblea de GNC, la calcomanía que va pegada en el vidrio): gnc_oblea_numero, gnc_oblea_vencimiento
   - cbu (captura o constancia de CBU/CVU): cbu, banco, titular_cuenta, alias
   - tarjeta (frente de una tarjeta de crédito): tarjeta_marca, tarjeta_banco, tarjeta_numero, tarjeta_vencimiento
-  - otro: objeto vacío
+  - otro: que_es (qué es la imagen en pocas palabras, por ejemplo "tubo de GNC", "auto de frente", "tablero", "rueda de auxilio")
 
 REGLAS:
 - Copiá los datos exactamente como se leen. Si un dato no se lee bien o no aparece, no pongas esa clave. Nunca inventes ni completes.

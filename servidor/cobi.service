@@ -1,0 +1,20 @@
+# El servicio de Cobi en el servidor (systemd). Hace que Cobi arranque solo al prender el servidor
+# y que se levante de nuevo si se cae. Se instala en /etc/systemd/system/cobi.service
+
+[Unit]
+Description=Cobi, el bot de Discord de SER Seguros
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu/cobi
+ExecStart=/home/ubuntu/cobi/venv/bin/python main.py
+# Si se cae, esperamos 10 segundos y lo levantamos de nuevo
+Restart=always
+RestartSec=10
+# Así los print salen al toque en los logs (journalctl)
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target

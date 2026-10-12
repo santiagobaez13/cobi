@@ -12,6 +12,8 @@ CLAVES = {
     "gnc_oblea": ["gnc_oblea_numero", "gnc_oblea_vencimiento"],
     "cbu": ["cbu", "banco", "titular_cuenta", "alias"],
     "tarjeta": ["tarjeta_marca", "tarjeta_banco", "tarjeta_numero", "tarjeta_vencimiento"],
+    # Lo que no es un documento: solo para poder decirle al productor qué le pasaron
+    "otro": ["que_es"],
 }
 
 NOMBRES = {

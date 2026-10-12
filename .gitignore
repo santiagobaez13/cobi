@@ -5,3 +5,4 @@ __pycache__/
 *.db
 material/
 desktop.ini
+deploy/

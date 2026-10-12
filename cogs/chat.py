@@ -6,7 +6,7 @@ from discord.ext import commands
 
 import config
 import db
-from util import mismo_nombre, normalizar
+from util import ahora, mismo_nombre, normalizar
 
 FORMATO_FECHA = "%Y-%m-%d %H:%M:%S"
 
@@ -50,7 +50,7 @@ def describir(alta) -> str:
         emitida = datetime.strptime(alta["emitida_en"], FORMATO_FECHA).strftime("%d/%m/%Y") if alta["emitida_en"] else "?"
         estado = f"✅ Emitida el {emitida}"
     elif alta["estado"] == "pendiente_emision":
-        dias = (datetime.now() - datetime.strptime(alta["pendiente_desde"], FORMATO_FECHA)).days
+        dias = (ahora() - datetime.strptime(alta["pendiente_desde"], FORMATO_FECHA)).days
         estado = f"⏳ Pendiente de emisión hace {dias} día{'s' if dias != 1 else ''} (está en #{config.CANAL_PENDIENTES})"
     else:
         estado = "📋 En curso"
