@@ -55,9 +55,10 @@ ETIQUETAS_ALTA = {
     "emitida": "Póliza emitida",
 }
 
-# Modelos de Gemini: si el primero está saturado, pasamos al otro
-MODELOS = ["gemini-flash-latest", "gemini-flash-lite-latest"]
+# Modelos de Gemini: si el primero está saturado o sin cuota, pasamos al otro. Cada modelo tiene su propia cuota gratis,
+# así que tener varios da más chances. El flash-lite lo sacamos porque se cuelga sin contestar
+MODELOS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest"]
 # Cuántas vueltas por todos los modelos antes de rendirse, y cuántos segundos le damos a cada intento.
 # Con Gemini gratis saturado no tiene sentido insistir minutos: probamos una vez cada modelo y avisamos
 VUELTAS_DE_REINTENTO = 1
-ESPERA_MAXIMA_IA = 40
+ESPERA_MAXIMA_IA = 30
