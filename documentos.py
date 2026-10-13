@@ -42,7 +42,7 @@ BANCOS_CBU = {
 # Los CVU (billeteras virtuales) empiezan con 000 y la billetera sale de los 7 primeros dígitos
 BILLETERAS_CVU = {"0000003": "Mercado Pago"}
 
-# Cómo nombra la gente a los bancos cuando lo escribe ("banco frances") → el nombre que usamos
+# Cómo nombra la gente a los bancos cuando lo escribe ("banco frances") y el nombre que usamos nosotros
 ALIAS_BANCOS = {
     "frances": "BBVA", "bbva": "BBVA", "galicia mas": "HSBC / Galicia Más", "hsbc": "HSBC / Galicia Más",
     "galicia": "Banco Galicia", "nacion": "Banco Nación", "bna": "Banco Nación", "provincia": "Banco Provincia",
@@ -98,7 +98,7 @@ def palabras(texto: str) -> list[str]:
 
 
 def banco_por_nombre(texto: str) -> str | None:
-    # "Banco frances" → "BBVA". Primero los alias más largos, así "galicia mas" gana a "galicia"
+    # "Banco frances" pasa a ser "BBVA". Primero probamos los alias más largos, así "galicia mas" le gana a "galicia"
     plano = " " + " ".join(palabras(texto)) + " "
     for alias in sorted(ALIAS_BANCOS, key=len, reverse=True):
         if f" {alias} " in plano:
@@ -235,7 +235,7 @@ def comparar_vehiculo(vehiculo_cotizacion: str | None, anio_cotizacion: str | No
 
 
 def enumerar_simple(textos: list[str]) -> str:
-    # ["marca", "año"] → "marca y año"
+    # Con ["marca", "año"] arma "marca y año"
     return textos[0] if len(textos) == 1 else f"{', '.join(textos[:-1])} y {textos[-1]}"
 
 

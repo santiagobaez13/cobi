@@ -34,7 +34,7 @@ _candados: dict[int, asyncio.Lock] = defaultdict(asyncio.Lock)
 
 
 def fecha_linda(fecha: str | None) -> str:
-    # "2026-09-30 18:40:00" → "30/09/2026"
+    # De "2026-09-30 18:40:00" a "30/09/2026"
     return datetime.strptime(fecha, FORMATO_FECHA).strftime("%d/%m/%Y") if fecha else "?"
 
 
@@ -54,9 +54,6 @@ def plantilla_del_alta(prefijo: str, alta) -> tuple[str | None, str]:
         if texto is not None:
             return texto, nombre
     return None, general
-
-
-# ---------- La lista de tareas ----------
 
 
 def tareas(alta) -> list[dict]:
@@ -104,7 +101,7 @@ def pendientes(lista: list[dict], claves: set[str] | None = None) -> list[dict]:
 
 
 def enumerar(textos: list[str]) -> str:
-    # ["a", "b", "c"] → "a, b y c"
+    # Con ["a", "b", "c"] arma "a, b y c"
     return textos[0] if len(textos) == 1 else f"{', '.join(textos[:-1])} y {textos[-1]}"
 
 
@@ -238,9 +235,6 @@ def solicitud_completa(alta, solo_con_datos: bool = False) -> str:
     return texto
 
 
-# ---------- Mantener la lista siempre abajo de todo ----------
-
-
 async def refrescar_panel(hilo: discord.Thread, alta_id: int, *, abajo: bool = True):
     # abajo=True: borra la lista vieja y la manda de nuevo al final del hilo (cuando llegó algo nuevo).
     # abajo=False: la edita donde está (cuando tocaste un botón de la lista)
@@ -319,9 +313,6 @@ async def iniciar_alta(hilo: discord.Thread, alta_id: int):
         imagen = imagen_plantilla(archivo)
         await hilo.send(f"📲 **Para mandarle al cliente** (la imagen y este texto) 👇\n```\n{texto}\n```", files=[imagen] if imagen else [])
     await refrescar_panel(hilo, alta_id)
-
-
-# ---------- Lo que le pasan a Cobi en el hilo ----------
 
 
 async def leer_imagenes(message: discord.Message, alta) -> tuple[dict, list[str]]:
@@ -436,9 +427,6 @@ async def procesar_mensaje(message: discord.Message, alta):
     await refrescar_panel(message.channel, alta["id"])
 
 
-# ---------- Ventanitas ----------
-
-
 class ModalSolicitud(discord.ui.Modal, title="N° de solicitud"):
     def __init__(self, alta):
         super().__init__()
@@ -478,7 +466,7 @@ class ModalCargarAMano(discord.ui.Modal, title="Cargar o corregir datos"):
             datos_cbu, avisos = documentos.revisar_cbu(self.cbu.value)
             nuevos.update(datos_cbu)
 
-        # "Campo: valor" → buscamos el campo por su nombre lindo ("N° de motor") o su clave ("motor")
+        # Lo escriben como "Campo: valor": buscamos el campo por su nombre lindo ("N° de motor") o por su clave ("motor")
         por_nombre = {normalizar(nombre): clave for clave, nombre in documentos.NOMBRES.items()}
         por_nombre.update({normalizar(clave): clave for clave in documentos.NOMBRES})
         for linea in self.correcciones.value.splitlines():
@@ -530,8 +518,7 @@ class MenuOmitir(discord.ui.Select):
         await refrescar_panel(interaction.channel, self.alta_id, abajo=False)
 
 
-# ---------- Botones de la lista ----------
-# Cada botón lleva la acción y el número de alta ("alta:ver:12"). Los paneles viejos de antes tenían
+# Cada botón lleva la acción y el número de alta ("alta:mano:12"). Los paneles viejos de antes tenían
 # también la etapa ("alta:siguiente:12:2"); esos los reconocemos para avisar que usen la lista nueva
 
 
@@ -612,9 +599,6 @@ class BotonAlta(discord.ui.DynamicItem[discord.ui.Button], template=r"alta:(?P<a
 
         # Si quedó pendiente aparece su tarjeta en #pendientes-emision; si se emitió, desaparece
         await sincronizar_tarjeta(interaction.client, self.alta_id)
-
-
-# ---------- #pendientes-emision: una tarjeta por alta pendiente ----------
 
 
 def canal_por_nombre(bot, nombre: str) -> discord.TextChannel | None:

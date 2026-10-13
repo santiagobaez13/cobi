@@ -26,12 +26,12 @@ def mismo_nombre(nombre_canal: str, buscado: str) -> bool:
 
 
 def slug(texto: str) -> str:
-    # "Accidentes Personales" → "accidentes_personales", para armar nombres de archivo
+    # Pasa "Accidentes Personales" a "accidentes_personales", para armar nombres de archivo
     return re.sub(r"[^a-z0-9]+", "_", normalizar(texto)).strip("_")
 
 
 def clave_compania(nombre: str | None) -> str:
-    # "Nación Seguros" → "nacion", "ATM Seguros" → "atm". Así no importa cómo la escriba la IA
+    # De "Nación Seguros" queda "nacion" y de "ATM Seguros" queda "atm". Así no importa cómo la escriba la IA
     return slug(nombre or "").split("_")[0]
 
 

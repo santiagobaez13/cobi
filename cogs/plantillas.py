@@ -12,7 +12,7 @@ EXTENSIONES_IMAGEN = (".png", ".jpg", ".jpeg", ".webp")
 
 
 def plantillas_disponibles() -> dict[str, Path]:
-    # Cada .md de plantillas/ es una plantilla: "requisitos_alta_auto.md" se muestra como "Requisitos alta auto"
+    # Cada .md de plantillas/ es una plantilla: "requisitos_alta_auto_atm.md" se muestra como "Requisitos alta auto atm"
     return {
         archivo.stem.replace("_", " ").capitalize(): archivo
         for archivo in sorted(CARPETA_PLANTILLAS.glob("*.md"))
@@ -20,7 +20,7 @@ def plantillas_disponibles() -> dict[str, Path]:
 
 
 def leer_plantilla(nombre_archivo: str, compania: str | None = None) -> str | None:
-    # Para el panel del alta: busca "fotos_auto.md" y compañía; si no existe devuelve None
+    # Lee una plantilla por nombre de archivo (por ejemplo "requisitos_alta_auto_atm") y le pone la compañía. Si no existe, devuelve None
     archivo = CARPETA_PLANTILLAS / f"{nombre_archivo}.md"
     if not archivo.is_file():
         return None
@@ -29,7 +29,7 @@ def leer_plantilla(nombre_archivo: str, compania: str | None = None) -> str | No
 
 
 def imagen_plantilla(nombre_archivo: str) -> discord.File | None:
-    # Si al lado del .md hay una imagen con el mismo nombre ("requisitos_alta_auto.jpeg"), va adjunta
+    # Si al lado del .md hay una imagen con el mismo nombre ("requisitos_alta_auto_atm.jpeg"), va adjunta
     for extension in EXTENSIONES_IMAGEN:
         imagen = CARPETA_PLANTILLAS / f"{nombre_archivo}{extension}"
         if imagen.is_file():
