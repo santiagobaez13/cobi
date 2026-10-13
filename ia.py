@@ -55,7 +55,7 @@ async def generar(contenido: list, ajustes=_config_texto) -> str:
                 print(f"{modelo} no contestó en {config.ESPERA_MAXIMA_IA}s, pruebo con el siguiente...")
             except Exception as e:
                 ultimo_error = e
-                saturado = any(c in str(e) for c in ("503", "429", "UNAVAILABLE", "RESOURCE_EXHAUSTED"))
+                saturado = any(c in str(e) for c in ("500", "503", "429", "INTERNAL", "UNAVAILABLE", "RESOURCE_EXHAUSTED"))
                 if not saturado:
                     raise
                 print(f"{modelo} saturado, pruebo con el siguiente...")
