@@ -326,7 +326,7 @@ async def leer_imagenes(message: discord.Message, alta) -> tuple[dict, list[str]
             leidos = await documentos.leer([(await a.read(), tipo) for a, tipo in imagenes])
         except Exception as e:
             print(f"Error leyendo documentos del alta {alta['id']}: {e}")
-            return {}, ["Uy, no pude leer esas imágenes 😕 Probá pasármelas de nuevo en un ratito."]
+            return {}, ["⚠️ La IA está saturada ahora (Gemini gratis) y no pude leer esas imágenes. Pasámelas de nuevo en un rato; lo demás de la lista anda igual."]
 
     nuevos, avisos, otros = {}, [], []
     caras_gnc = int(db.datos_alta(alta).get("gnc_cedula_caras", 0))

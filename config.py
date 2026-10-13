@@ -57,6 +57,7 @@ ETIQUETAS_ALTA = {
 
 # Modelos de Gemini: si el primero está saturado, pasamos al otro
 MODELOS = ["gemini-flash-latest", "gemini-flash-lite-latest"]
-# Cuántas vueltas por todos los modelos antes de rendirse, y cuántos segundos le damos a cada intento
-VUELTAS_DE_REINTENTO = 3
-ESPERA_MAXIMA_IA = 60
+# Cuántas vueltas por todos los modelos antes de rendirse, y cuántos segundos le damos a cada intento.
+# Con Gemini gratis saturado no tiene sentido insistir minutos: probamos una vez cada modelo y avisamos
+VUELTAS_DE_REINTENTO = 1
+ESPERA_MAXIMA_IA = 40
