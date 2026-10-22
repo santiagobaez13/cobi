@@ -57,6 +57,19 @@ def crear_tablas():
             "panel_id": "INTEGER",
             "tarjeta_pendiente_id": "INTEGER",
         })
+        # Las tareas del equipo ("cobi anotá para Eze: ..."). para_cuando va como AAAA-MM-DD
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS tareas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                texto TEXT NOT NULL,
+                para_id INTEGER NOT NULL,
+                de_id INTEGER NOT NULL,
+                para_cuando TEXT NOT NULL,
+                estado TEXT NOT NULL DEFAULT 'pendiente',
+                creada TEXT NOT NULL,
+                hecha_en TEXT
+            )
+        """)
 
 
 def _agregar_columnas(con: sqlite3.Connection, tabla: str, columnas: dict[str, str]):
@@ -192,3 +205,36 @@ def todas_las_altas() -> list[sqlite3.Row]:
     # Para el buscador de #cobi. Son pocas, así que filtramos en Python
     with closing(_conectar()) as con:
         return con.execute("SELECT * FROM altas ORDER BY id DESC").fetchall()
+
+
+def nueva_tarea(texto: str, para_id: int, de_id: int, para_cuando: str, creada: str) -> int:
+    with closing(_conectar()) as con, con:
+        cursor = con.execute(
+            "INSERT INTO tareas (texto, para_id, de_id, para_cuando, creada) VALUES (?, ?, ?, ?, ?)",
+            (texto, para_id, de_id, para_cuando, creada),
+        )
+        return cursor.lastrowid
+
+
+def obtener_tarea(tarea_id: int) -> sqlite3.Row | None:
+    with closing(_conectar()) as con:
+        return con.execute("SELECT * FROM tareas WHERE id = ?", (tarea_id,)).fetchone()
+
+
+def tareas_pendientes(para_id: int, hasta: str | None = None) -> list[sqlite3.Row]:
+    # Las que le quedan a esa persona; con "hasta" (AAAA-MM-DD), solo las que eran para ese día o antes
+    with closing(_conectar()) as con:
+        return con.execute(
+            "SELECT * FROM tareas WHERE estado = 'pendiente' AND para_id = ? AND para_cuando <= ? ORDER BY para_cuando, id",
+            (para_id, hasta or "9999-12-31"),
+        ).fetchall()
+
+
+def terminar_tarea(tarea_id: int, momento: str) -> bool:
+    # Devuelve False si ya estaba hecha (por si tocan el botón dos veces o desde dos lados)
+    with closing(_conectar()) as con, con:
+        cursor = con.execute(
+            "UPDATE tareas SET estado = 'hecha', hecha_en = ? WHERE id = ? AND estado = 'pendiente'",
+            (momento, tarea_id),
+        )
+        return cursor.rowcount == 1

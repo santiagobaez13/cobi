@@ -6,6 +6,7 @@ from discord.ext import commands
 
 import config
 import db
+from cogs import tareas
 from util import ahora, mismo_nombre, normalizar
 
 FORMATO_FECHA = "%Y-%m-%d %H:%M:%S"
@@ -71,9 +72,20 @@ class Chat(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
-        if message.author.bot or not mismo_nombre(getattr(message.channel, "name", ""), config.CANAL_CHAT):
+        if message.author.bot:
             return
-        if not le_hablan_a_cobi(self.bot, message):
+        if message.guild is None:
+            # Por privado todo es para Cobi, pero solo le contesta a los del equipo (hay datos de clientes)
+            if message.author.id not in config.EQUIPO:
+                return
+        elif not mismo_nombre(getattr(message.channel, "name", ""), config.CANAL_CHAT) or not le_hablan_a_cobi(self.bot, message):
+            return
+
+        if tareas.es_anotar(message.content):
+            await tareas.anotar(self.bot, message)
+            return
+        if tareas.es_consulta(message.content):
+            await tareas.mostrar(message)
             return
 
         # Sacamos las menciones (<@123...>), si no sus números se confunden con un DNI o un teléfono
@@ -84,8 +96,11 @@ class Chat(commands.Cog):
         if mejor == 0:
             # Acá va a entrar la IA para charlar y responder de seguros, cuando esté paga
             await message.reply(
-                "Por ahora sé buscar altas: pasame la **patente**, el **DNI**, el **N° de solicitud**, "
-                "el **teléfono** o el **apellido** del cliente. Las preguntas de seguros todavía no las aprendí 📚"
+                "Por ahora sé:\n"
+                "🔎 **Buscar altas**: pasame la patente, el DNI, el N° de solicitud, el teléfono o el apellido\n"
+                "📋 **Anotar tareas**: *cobi anotá para Eze: liquidarle a Damián*\n"
+                "📝 **Decirte qué tenés pendiente**: *cobi, ¿qué tengo?* (o *¿qué tiene Eze?*)\n"
+                "Las preguntas de seguros todavía no las aprendí 📚"
             )
             return
 

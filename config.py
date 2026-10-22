@@ -24,6 +24,15 @@ CANAL_ALERTAS = CANAL_CHAT
 DIAS_ALERTA_CERTIFICADO = 10
 VIGENCIA_CERTIFICADO = 15
 
+# El equipo: el ID de Discord de cada uno y cómo le dicen (el primero es el que usa Cobi para nombrarlo).
+# Sirve para anotar tareas: "cobi anotá para Eze: liquidarle a Damián"
+EQUIPO = {
+    234543316950188034: ["Santi", "Santiago"],
+    1092434565836050574: ["Eze", "Ezequiel"],
+}
+# A qué hora (de Argentina) Cobi le manda a cada uno por privado lo que le quedó pendiente. Solo de lunes a viernes
+HORA_AVISO_TAREAS = 18
+
 # Cómo trabaja cada compañía en el alta. La clave es la primera palabra del nombre, sin tildes ("nacion", "atm").
 # - tarea_fotos: cómo se llama el tilde de las fotos en la lista
 # - fotos: qué te dice Cobi cuando ya cargaste la solicitud y faltan las fotos ({solicitud} = el N° de solicitud)
