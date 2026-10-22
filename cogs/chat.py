@@ -1,5 +1,6 @@
+import random
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import discord
 from discord.ext import commands
@@ -61,6 +62,43 @@ def describir(alta) -> str:
     )
 
 
+# Si Cobi te acaba de contestar, por un ratito un "gracias" o un "dale" se entiende que es para él aunque no lo nombres
+VENTANA_DE_CHARLA = timedelta(minutes=2)
+
+# Charla de todos los días que Cobi entiende sin IA. Solo si el mensaje es eso y nada más ("gracias cobi!", "buen día")
+AGRADECER = r"(muchas )?gracias|grax|genial|joya|barbaro|buenisimo|perfecto|excelente|crack|idolo|capo|sos un groso"
+SALUDAR = r"hola|holis|buen dia|buenos dias|buenas|buenas tardes|buenas noches|que tal|como andas|como va|todo bien"
+DESPEDIR = r"chau|chao|nos vemos|hasta manana|hasta luego|me voy|adios"
+ASENTIR = r"ok|oka|okey|dale|listo|de una|ya esta|entendido|bien|ahi va|buenisimo"
+
+
+def charla(texto: str) -> str | None:
+    # Devuelve qué tipo de charla es, o None si el mensaje trae algo más (una patente, una tarea...)
+    resto = re.sub(r"[^a-z0-9 ]", " ", normalizar(re.sub(r"<@[!&]?\d+>", " ", texto)))
+    resto = " ".join(p for p in resto.split() if p not in ("cobi", "che", "y", "vos", "a", "jaja", "jajaja"))
+    if not resto:
+        return None
+    for tipo, frases in (("agradecer", AGRADECER), ("saludar", SALUDAR), ("despedir", DESPEDIR), ("asentir", ASENTIR)):
+        if re.fullmatch(rf"(?:(?:{frases})\s*)+", resto):
+            return tipo
+    return None
+
+
+async def responder_charla(message: discord.Message, tipo: str):
+    if tipo == "asentir":
+        await message.add_reaction("👍")  # para un "dale" alcanza con un pulgar, sin sumar mensajes
+        return
+    if tipo == "agradecer":
+        texto = random.choice(["De nada 🙌", "¡Para eso estoy! 💪", "Cuando quieras 😉"])
+    elif tipo == "despedir":
+        texto = random.choice(["¡Chau! 👋", "¡Nos vemos! 👋", "¡Hasta mañana! 👋"])
+    else:
+        hora = ahora().hour
+        saludo = "¡Buen día!" if 5 <= hora < 13 else "¡Buenas tardes!" if hora < 20 else "¡Buenas noches!"
+        texto = f"{saludo} ¿En qué te doy una mano?"
+    await message.reply(texto, mention_author=False)
+
+
 def le_hablan_a_cobi(bot: commands.Bot, message: discord.Message) -> bool:
     # En el general charla todo el equipo: Cobi contesta solo si lo nombran, lo arroban o le responden un mensaje
     return bot.user in message.mentions or re.search(r"\bcobi\b", normalizar(message.content)) is not None
@@ -69,16 +107,30 @@ def le_hablan_a_cobi(bot: commands.Bot, message: discord.Message) -> bool:
 class Chat(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        # (canal, persona) → cuándo le contestó Cobi por última vez
+        self.ultima_respuesta: dict[tuple[int, int], datetime] = {}
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot:
             return
+        clave = (message.channel.id, message.author.id)
         if message.guild is None:
             # Por privado todo es para Cobi, pero solo le contesta a los del equipo (hay datos de clientes)
             if message.author.id not in config.EQUIPO:
                 return
-        elif not mismo_nombre(getattr(message.channel, "name", ""), config.CANAL_CHAT) or not le_hablan_a_cobi(self.bot, message):
+        elif not mismo_nombre(getattr(message.channel, "name", ""), config.CANAL_CHAT):
+            return
+        elif not le_hablan_a_cobi(self.bot, message):
+            # No lo nombraron, pero si recién le contestó y es un "gracias" o un "dale", es para él
+            reciente = ahora() - self.ultima_respuesta.get(clave, datetime.min) < VENTANA_DE_CHARLA
+            if reciente and (tipo := charla(message.content)):
+                await responder_charla(message, tipo)
+            return
+
+        self.ultima_respuesta[clave] = ahora()
+        if tipo := charla(message.content):
+            await responder_charla(message, tipo)
             return
 
         if tareas.es_anotar(message.content):
