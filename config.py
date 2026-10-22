@@ -18,9 +18,9 @@ CANAL_PENDIENTES = "pendientes-emision"
 # Canal para preguntarle cosas a Cobi ("che cobi, patente 329jsp, ¿qué alta fue?")
 CANAL_CHAT = "cobi"
 
-# Alerta de certificados: si un alta sigue pendiente de emisión a los X días, Cobi avisa en este canal.
+# Alerta de certificados: si un alta sigue pendiente de emisión a los X días, Cobi avisa en este canal (el mismo de preguntarle cosas, así todo lo que dice Cobi queda junto).
 # El certificado de cobertura vale VIGENCIA_CERTIFICADO días
-CANAL_ALERTAS = "alertas"
+CANAL_ALERTAS = "cobi"
 DIAS_ALERTA_CERTIFICADO = 10
 VIGENCIA_CERTIFICADO = 15
 
