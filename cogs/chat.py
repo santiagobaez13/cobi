@@ -60,19 +60,32 @@ def describir(alta) -> str:
     )
 
 
+def le_hablan_a_cobi(bot: commands.Bot, message: discord.Message) -> bool:
+    # En el general charla todo el equipo: Cobi contesta solo si lo nombran, lo arroban o le responden un mensaje
+    return bot.user in message.mentions or re.search(r"\bcobi\b", normalizar(message.content)) is not None
+
+
 class Chat(commands.Cog):
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
         if message.author.bot or not mismo_nombre(getattr(message.channel, "name", ""), config.CANAL_CHAT):
             return
+        if not le_hablan_a_cobi(self.bot, message):
+            return
 
-        buscados = fragmentos(message.content)
+        # Sacamos las menciones (<@123...>), si no sus números se confunden con un DNI o un teléfono
+        texto = re.sub(r"<@[!&]?\d+>", " ", message.content)
+        buscados = fragmentos(texto)
         resultados = sorted(((puntaje(a, buscados), a) for a in db.todas_las_altas()), key=lambda r: r[0], reverse=True)
         mejor = resultados[0][0] if resultados else 0
         if mejor == 0:
+            # Acá va a entrar la IA para charlar y responder de seguros, cuando esté paga
             await message.reply(
-                "No encontré ningún alta con eso 🤔 Probá con la **patente**, el **DNI**, el **N° de solicitud**, "
-                "el **teléfono** o el **apellido** del cliente."
+                "Por ahora sé buscar altas: pasame la **patente**, el **DNI**, el **N° de solicitud**, "
+                "el **teléfono** o el **apellido** del cliente. Las preguntas de seguros todavía no las aprendí 📚"
             )
             return
 
@@ -83,4 +96,4 @@ class Chat(commands.Cog):
 
 
 async def setup(bot: commands.Bot):
-    await bot.add_cog(Chat())
+    await bot.add_cog(Chat(bot))

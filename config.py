@@ -15,12 +15,12 @@ COMPANIAS = ["Nación Seguros", "ATM Seguros"]
 # Canal donde Cobi deja una tarjeta por cada alta pendiente de emisión (se borra cuando se emite)
 CANAL_PENDIENTES = "pendientes-emision"
 
-# Canal para preguntarle cosas a Cobi ("che cobi, patente 329jsp, ¿qué alta fue?")
-CANAL_CHAT = "cobi"
+# El canal general del equipo. Cobi contesta ahí cuando lo nombran ("che cobi, patente 329jsp, ¿qué alta fue?")
+CANAL_CHAT = "general"
 
-# Alerta de certificados: si un alta sigue pendiente de emisión a los X días, Cobi avisa en este canal (el mismo de preguntarle cosas, así todo lo que dice Cobi queda junto).
+# Alerta de certificados: si un alta sigue pendiente de emisión a los X días, Cobi avisa en este canal (el general, así todo lo que dice Cobi queda junto).
 # El certificado de cobertura vale VIGENCIA_CERTIFICADO días
-CANAL_ALERTAS = "cobi"
+CANAL_ALERTAS = CANAL_CHAT
 DIAS_ALERTA_CERTIFICADO = 10
 VIGENCIA_CERTIFICADO = 15
 
