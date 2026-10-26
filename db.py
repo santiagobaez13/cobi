@@ -57,6 +57,15 @@ def crear_tablas():
             "panel_id": "INTEGER",
             "tarjeta_pendiente_id": "INTEGER",
         })
+        # Lo que se borra con /limpiar queda copiado acá (en JSON), por si nos equivocamos
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS borradas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tabla TEXT NOT NULL,
+                datos TEXT NOT NULL,
+                borrada TEXT NOT NULL
+            )
+        """)
         # Las tareas del equipo ("cobi anotá para Eze: ..."). para_cuando va como AAAA-MM-DD
         con.execute("""
             CREATE TABLE IF NOT EXISTS tareas (
@@ -238,3 +247,21 @@ def terminar_tarea(tarea_id: int, momento: str) -> bool:
             (momento, tarea_id),
         )
         return cursor.rowcount == 1
+
+
+def borrar_alta(alta_id: int, momento: str):
+    # Borra el alta y su cotización, pero antes guarda una copia de las dos en "borradas"
+    with closing(_conectar()) as con, con:
+        alta = con.execute("SELECT * FROM altas WHERE id = ?", (alta_id,)).fetchone()
+        if alta is None:
+            return
+        cotizacion = con.execute("SELECT * FROM cotizaciones WHERE id = ?", (alta["cotizacion_id"],)).fetchone()
+        for tabla, fila in (("altas", alta), ("cotizaciones", cotizacion)):
+            if fila is not None:
+                con.execute(
+                    "INSERT INTO borradas (tabla, datos, borrada) VALUES (?, ?, ?)",
+                    (tabla, json.dumps(dict(fila), ensure_ascii=False), momento),
+                )
+        con.execute("DELETE FROM altas WHERE id = ?", (alta_id,))
+        if cotizacion is not None:
+            con.execute("DELETE FROM cotizaciones WHERE id = ?", (cotizacion["id"],))
