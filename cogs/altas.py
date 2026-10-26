@@ -27,6 +27,7 @@ BOTONES = {
     "omitir": ("Omitir", "⏭️", discord.ButtonStyle.secondary),
     "pendiente": ("Pendiente de emisión", "⏳", discord.ButtonStyle.secondary),
     "emitida": ("Emitida", "✅", discord.ButtonStyle.success),
+    "deshacer": ("Volver atrás", "↩️", discord.ButtonStyle.secondary),
 }
 
 # Un candado por alta, así si suben varias fotos juntas no se pisan las actualizaciones de la lista
@@ -177,10 +178,11 @@ def contenido_panel(alta) -> str:
 
 def vista_panel(alta) -> discord.ui.View:
     vista = discord.ui.View(timeout=None)
+    # "Volver atrás" por si tocaron Pendiente o Emitida sin querer
     if alta["estado"] == "emitida":
-        acciones = []
+        acciones = ["deshacer"]
     elif alta["estado"] == "pendiente_emision":
-        acciones = ["emitida"]
+        acciones = ["emitida", "deshacer"]
     else:
         lista = tareas(alta)
         acciones = ["mano", "solicitud"]
@@ -575,6 +577,16 @@ class BotonAlta(discord.ui.DynamicItem[discord.ui.Button], template=r"alta:(?P<a
                 await sincronizar_tarjeta(interaction.client, self.alta_id)
                 return
             db.actualizar_alta(self.alta_id, estado="emitida", emitida_en=momento)
+        elif self.accion == "deshacer":
+            if alta["estado"] == "emitida":
+                # Vuelve a donde estaba: a pendiente si había pasado por ahí (los días siguen contando desde entonces),
+                # si no a la lista en curso
+                db.actualizar_alta(self.alta_id, estado="pendiente_emision" if alta["pendiente_desde"] else "en_curso", emitida_en=None)
+            elif alta["estado"] == "pendiente_emision":
+                db.actualizar_alta(self.alta_id, estado="en_curso", pendiente_desde=None, alerta_enviada=None)
+            else:
+                await interaction.response.send_message("No hay nada para volver atrás 👍", ephemeral=True)
+                return
 
         # Primero le avisamos a Discord que lo recibimos (tiene 3 segundos de paciencia) y después acomodamos todo
         await interaction.response.defer()
@@ -594,7 +606,9 @@ class BotonAlta(discord.ui.DynamicItem[discord.ui.Button], template=r"alta:(?P<a
                 await refrescar_panel(hilo, self.alta_id, abajo=False)
             # Pendiente o emitida: en el hilo no queda nada por hacer, así que lo archivamos y deja de aparecer
             # en la barra de la izquierda. Sigue estando en el foro, y si alguien escribe se reabre solo
-            if self.accion in ("pendiente", "emitida"):
+            # Si volvieron atrás a pendiente, también se archiva; si volvió a en curso, queda abierto para seguir
+            vuelve_a_pendiente = self.accion == "deshacer" and db.obtener_alta(self.alta_id)["estado"] == "pendiente_emision"
+            if self.accion in ("pendiente", "emitida") or vuelve_a_pendiente:
                 await archivar(hilo)
 
         # Si quedó pendiente aparece su tarjeta en #pendientes-emision; si se emitió, desaparece
