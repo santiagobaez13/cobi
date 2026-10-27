@@ -56,6 +56,7 @@ def crear_tablas():
             "omitidos": "TEXT",
             "panel_id": "INTEGER",
             "tarjeta_pendiente_id": "INTEGER",
+            "hoja": "TEXT",
         })
         # Lo que se borra con /limpiar queda copiado acá (en JSON), por si nos equivocamos
         con.execute("""
@@ -149,7 +150,7 @@ def alta_por_hilo(hilo_id: int) -> sqlite3.Row | None:
 
 
 # Solo dejamos tocar estas columnas, así nadie mete cualquier cosa en el UPDATE
-CAMPOS_ALTA = {"etapa", "estado", "n_solicitud", "pendiente_desde", "emitida_en", "alerta_enviada", "omitidos", "panel_id", "tarjeta_pendiente_id"}
+CAMPOS_ALTA = {"etapa", "estado", "n_solicitud", "pendiente_desde", "emitida_en", "alerta_enviada", "omitidos", "panel_id", "tarjeta_pendiente_id", "hoja"}
 
 
 def actualizar_alta(alta_id: int, **campos):
@@ -208,6 +209,12 @@ def altas_con_tarjeta_sobrante() -> list[sqlite3.Row]:
     # Las que tienen tarjeta en #pendientes pero ya no están pendientes (por si se emitieron con Cobi apagado o algo falló)
     with closing(_conectar()) as con:
         return con.execute("SELECT * FROM altas WHERE estado != 'pendiente_emision' AND tarjeta_pendiente_id IS NOT NULL").fetchall()
+
+
+def altas_para_la_hoja() -> list[sqlite3.Row]:
+    # Las emitidas que quedaron sin llegar a la hoja de Google (porque Google falló en el momento)
+    with closing(_conectar()) as con:
+        return con.execute("SELECT * FROM altas WHERE estado = 'emitida' AND json_extract(hoja, '$.estado') = 'pendiente'").fetchall()
 
 
 def todas_las_altas() -> list[sqlite3.Row]:

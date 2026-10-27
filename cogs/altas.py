@@ -10,6 +10,7 @@ from discord.ext import commands, tasks
 import config
 import db
 import documentos
+import hoja
 from cogs.plantillas import imagen_plantilla, leer_plantilla
 from util import ahora, buscar_etiqueta, clave_compania, mismo_nombre, normalizar, slug
 
@@ -614,6 +615,17 @@ class BotonAlta(discord.ui.DynamicItem[discord.ui.Button], template=r"alta:(?P<a
         # Si quedó pendiente aparece su tarjeta en #pendientes-emision; si se emitió, desaparece
         await sincronizar_tarjeta(interaction.client, self.alta_id)
 
+        # La hoja de Google de emitidas: al emitir se carga la fila, y si vuelven atrás desde emitida se saca
+        if hoja.activa():
+            if self.accion == "emitida":
+                productor = config.EQUIPO.get(interaction.user.id, [interaction.user.display_name])[0]
+                hoja.anotar_para_cargar(self.alta_id, productor)
+                if not await hoja.cargar(self.alta_id) and hilo is not None:
+                    await hilo.send("⚠️ No pude cargarla en la hoja de emitidas (Google no contestó). La reintento sola en un rato.")
+            elif self.accion == "deshacer" and alta["estado"] == "emitida":
+                if not await hoja.sacar(self.alta_id) and hilo is not None:
+                    await hilo.send("⚠️ No pude sacarla de la hoja de emitidas: borrá esa fila a mano.")
+
 
 def canal_por_nombre(bot, nombre: str) -> discord.TextChannel | None:
     return discord.utils.find(lambda c: isinstance(c, discord.TextChannel) and mismo_nombre(c.name, nombre), bot.get_all_channels())
@@ -709,6 +721,11 @@ class Altas(commands.Cog):
                 await sincronizar_tarjeta(self.bot, alta["id"])
             except discord.HTTPException as e:
                 print(f"No pude actualizar la tarjeta del alta {alta['id']}: {e}")
+
+        # Las emitidas que no llegaron a la hoja de Google porque falló en el momento
+        if hoja.activa():
+            for alta in db.altas_para_la_hoja():
+                await hoja.cargar(alta["id"])
 
         limite = (ahora() - timedelta(days=config.DIAS_ALERTA_CERTIFICADO)).strftime(FORMATO_FECHA)
         altas = db.altas_para_alertar(limite)

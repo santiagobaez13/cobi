@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+# El script de la hoja de Google de emitidas (ver hoja.py). Si no están, Cobi no carga nada en la hoja
+HOJA_EMITIDAS_URL = os.getenv("HOJA_EMITIDAS_URL")
+HOJA_EMITIDAS_CLAVE = os.getenv("HOJA_EMITIDAS_CLAVE")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # El nombre de la productora, lo usan los prompts y los mensajes de Cobi. Si cambia, se toca acá y listo
@@ -37,16 +40,19 @@ HORA_AVISO_TAREAS = 18
 # - tarea_fotos: cómo se llama el tilde de las fotos en la lista
 # - fotos: qué te dice Cobi cuando ya cargaste la solicitud y faltan las fotos ({solicitud} = el N° de solicitud)
 # - emision_inmediata: si la póliza sale en el momento, el cierre ofrece solo "Emitida"
+# - nombre_hoja: cómo se escribe la compañía en la hoja de Google de emitidas
 COMPANIAS_ALTA = {
     "atm": {
         "tarea_fotos": "Fotos cargadas en la web",
         "fotos": "Cargá las fotos en la web de ATM (tienen que estar **fechadas**) y tocá **Continuar inspección**. Cuando termines, marcá 📸 Fotos listas.",
         "emision_inmediata": True,
+        "nombre_hoja": "ATM",
     },
     "nacion": {
         "tarea_fotos": "Fotos enviadas por mail",
         "fotos": "Mandá las fotos por mail a Nación con el N° de solicitud {solicitud}. Cuando termines, marcá 📸 Fotos listas.",
         "emision_inmediata": False,
+        "nombre_hoja": "Nacion",
     },
 }
 

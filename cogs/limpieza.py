@@ -4,6 +4,7 @@ from discord.ext import commands
 
 import config
 import db
+import hoja
 from cogs.altas import buscar_hilo, canal_por_nombre
 from util import ahora
 
@@ -39,6 +40,10 @@ async def borrar_todo(bot: commands.Bot, alta_id: int):
             await hilo.delete()
         except discord.HTTPException as e:
             print(f"No pude borrar el hilo del alta {alta_id}: {e}")
+
+    # Si estaba cargada en la hoja de emitidas, también sale de ahí
+    if hoja.activa():
+        await hoja.sacar(alta_id)
 
     db.borrar_alta(alta_id, ahora().strftime(FORMATO_FECHA))
 
