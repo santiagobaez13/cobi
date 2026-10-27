@@ -25,6 +25,7 @@ BOTONES = {
     "mano": ("Cargar a mano", "✍️", discord.ButtonStyle.secondary),
     "solicitud": ("N° de solicitud", "🔢", discord.ButtonStyle.secondary),
     "fotos": ("Fotos listas", "📸", discord.ButtonStyle.secondary),
+    "mail": ("Mail de las fotos", "📧", discord.ButtonStyle.secondary),
     "omitir": ("Omitir", "⏭️", discord.ButtonStyle.secondary),
     "pendiente": ("Pendiente de emisión", "⏳", discord.ButtonStyle.secondary),
     "emitida": ("Emitida", "✅", discord.ButtonStyle.success),
@@ -43,6 +44,20 @@ def fecha_linda(fecha: str | None) -> str:
 def ficha_compania(alta) -> dict:
     # Cómo trabaja la compañía de esta alta (ver COMPANIAS_ALTA en config.py). Si no la conocemos, vacía
     return config.COMPANIAS_ALTA.get(clave_compania(alta["compania"]), {})
+
+
+def texto_mail_fotos(alta) -> str:
+    # El mail de siempre para mandarle las fotos a la compañía, con el N° de solicitud ya puesto (solo lo ve quien lo pidió)
+    mail = ficha_compania(alta).get("mail_fotos")
+    if not mail:
+        return "Esta compañía no recibe las fotos por mail 🤔"
+    if not alta["n_solicitud"]:
+        return "Primero cargá el **N° de solicitud** (🔢), así lo pongo en el asunto 😉"
+    asunto = mail["asunto"].replace("{solicitud}", alta["n_solicitud"])
+    return (
+        f"📧 **Mail para {alta['compania']}** (adjuntale las fotos)\n"
+        f"**Asunto**\n```\n{asunto}\n```\n**Cuerpo**\n```\n{mail['cuerpo']}\n```"
+    )
 
 
 def plantilla_del_alta(prefijo: str, alta) -> tuple[str | None, str]:
@@ -189,6 +204,9 @@ def vista_panel(alta) -> discord.ui.View:
         acciones = ["mano", "solicitud"]
         if pendientes(lista, {"fotos"}):
             acciones.append("fotos")
+            # Si la compañía recibe las fotos por mail (Nación), el botón con el asunto y el cuerpo listos
+            if ficha_compania(alta).get("mail_fotos"):
+                acciones.append("mail")
         if any(t["clave"] != "solicitud" and not t["hecho"] for t in lista):
             acciones.append("omitir")
         if puede_cerrar(alta, lista):
@@ -552,6 +570,9 @@ class BotonAlta(discord.ui.DynamicItem[discord.ui.Button], template=r"alta:(?P<a
         if self.accion == "mano":
             await interaction.response.send_modal(ModalCargarAMano(alta))
             await adoptar_panel(interaction, alta)
+            return
+        if self.accion == "mail":
+            await interaction.response.send_message(texto_mail_fotos(alta), ephemeral=True)
             return
         if self.accion == "omitir":
             menu = MenuOmitir(alta)

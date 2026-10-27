@@ -41,6 +41,7 @@ HORA_AVISO_TAREAS = 18
 # - fotos: qué te dice Cobi cuando ya cargaste la solicitud y faltan las fotos ({solicitud} = el N° de solicitud)
 # - emision_inmediata: si la póliza sale en el momento, el cierre ofrece solo "Emitida"
 # - nombre_hoja: cómo se escribe la compañía en la hoja de Google de emitidas
+# - mail_fotos: si las fotos van por mail, el asunto y el cuerpo que da el botón 📧 ({solicitud} = el N° de solicitud)
 COMPANIAS_ALTA = {
     "atm": {
         "tarea_fotos": "Fotos cargadas en la web",
@@ -50,9 +51,13 @@ COMPANIAS_ALTA = {
     },
     "nacion": {
         "tarea_fotos": "Fotos enviadas por mail",
-        "fotos": "Mandá las fotos por mail a Nación con el N° de solicitud {solicitud}. Cuando termines, marcá 📸 Fotos listas.",
+        "fotos": "Mandá las fotos por mail a Nación con el N° de solicitud {solicitud} (el texto del mail está en 📧). Cuando termines, marcá 📸 Fotos listas.",
         "emision_inmediata": False,
         "nombre_hoja": "Nacion",
+        "mail_fotos": {
+            "asunto": "Solicitud de Emisión N° {solicitud}",
+            "cuerpo": "Buenas tardes,\nAdjunto imágenes para su inspección.\nEspero sus comentarios.\nSaludos.",
+        },
     },
 }
 
