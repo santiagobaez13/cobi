@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import discord
 from discord.ext import commands
 
+import codigos_postales
 import config
 import db
 from cogs import tareas
@@ -139,6 +140,9 @@ class Chat(commands.Cog):
         if tareas.es_consulta(message.content):
             await tareas.mostrar(message)
             return
+        if codigos_postales.es_pregunta(message.content):
+            await message.reply(codigos_postales.responder(message.content), mention_author=False)
+            return
 
         # Sacamos las menciones (<@123...>), si no sus números se confunden con un DNI o un teléfono
         texto = re.sub(r"<@[!&]?\d+>", " ", message.content)
@@ -152,6 +156,7 @@ class Chat(commands.Cog):
                 "🔎 **Buscar altas**: pasame la patente, el DNI, el N° de solicitud, el teléfono o el apellido\n"
                 "📋 **Anotar tareas**: *cobi anotá para Eze: liquidarle a Damián*\n"
                 "📝 **Decirte qué tenés pendiente**: *cobi, ¿qué tengo?* (o *¿qué tiene Eze?*)\n"
+                "📮 **Códigos postales**: *cobi cp Banfield*\n"
                 "Las preguntas de seguros todavía no las aprendí 📚"
             )
             return
