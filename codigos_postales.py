@@ -20,6 +20,15 @@ RELLENO = {
 }
 MINUSCULAS = {"de", "del", "la", "las", "los", "y", "el"}
 
+# En CABA el CP va por calle y altura: lo saca el buscador del Correo. Del CPA "C1425DBF" sirven los 4 números (1425)
+COMO_SACAR_CABA = (
+    "En CABA el código postal va por **calle y altura**, no por barrio 🏙️\n"
+    "Sacalo en el buscador del Correo: https://www.correoargentino.com.ar/formularios/cpa "
+    "(provincia *Capital Federal*, calle sin \"Av.\" y altura).\n"
+    "Te da algo como **C1425DBF**: para la compañía usás los 4 números del medio → **1425**. "
+    "La dirección está en el dorso del DNI del cliente."
+)
+
 
 @cache
 def _filas() -> list[dict]:
@@ -77,11 +86,11 @@ def responder(texto: str) -> str:
     if not lugar:
         return "¿De qué localidad? Por ejemplo: *cobi cp Banfield*"
     if lugar in ("capital", "capital federal", "caba", "ciudad autonoma de buenos aires"):
-        return "En CABA el código postal va por calle (del 1000 al 1499), no lo tengo por barrio 😕"
+        return COMO_SACAR_CABA
 
     encontradas = buscar(lugar)
     if not encontradas:
-        return f"No encontré **{lugar}** 🤔 Fijate cómo se escribe, o si es un barrio de CABA (esos no los tengo)."
+        return f"No encontré **{lugar}** 🤔 Fijate cómo se escribe. Si es un barrio de CABA:\n\n{COMO_SACAR_CABA}"
 
     renglones = [
         f"📮 **{lindo(f['localidad'])}** ({lindo(f['partido'])}, {f['provincia']}): **{f['cp']}**"
@@ -90,5 +99,5 @@ def responder(texto: str) -> str:
     if len(encontradas) > MAX_RESULTADOS:
         renglones.append(f"…y {len(encontradas) - MAX_RESULTADOS} más. Si no está, decime el nombre más completo.")
     if all(f["provincia"] != "Buenos Aires" for f in encontradas):
-        renglones.append("(Si es un barrio de CABA, esos no los tengo: ahí el CP va por calle)")
+        renglones.append(f"\nSi buscabas el barrio de CABA:\n{COMO_SACAR_CABA}")
     return "\n".join(renglones)
