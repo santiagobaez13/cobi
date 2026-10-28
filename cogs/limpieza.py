@@ -62,7 +62,7 @@ class Confirmar(discord.ui.View):
         for alta_id in self.ids:
             await borrar_todo(interaction.client, alta_id)
         await interaction.edit_original_response(
-            content=f"✅ Listo, borré {len(self.ids)} alta{'s' if len(self.ids) != 1 else ''}. "
+            content=f"✅ Listo, borré {len(self.ids)} solicitud{'es' if len(self.ids) != 1 else ''}. "
                     "Si me equivoqué, quedó una copia en la base: avisale a Santi."
         )
 
@@ -81,7 +81,7 @@ class MenuAltas(discord.ui.Select):
             )
             for a in altas
         ]
-        super().__init__(placeholder="Elegí las altas que querés borrar", min_values=1, max_values=len(opciones), options=opciones)
+        super().__init__(placeholder="Elegí las solicitudes que querés borrar", min_values=1, max_values=len(opciones), options=opciones)
 
     async def callback(self, interaction: discord.Interaction):
         ids = [int(v) for v in self.values]
@@ -94,7 +94,7 @@ class MenuAltas(discord.ui.Select):
 
 
 class Limpieza(commands.Cog):
-    @app_commands.command(name="limpiar", description="Borrar altas de prueba (el hilo, la tarjeta y los datos)")
+    @app_commands.command(name="limpiar", description="Borrar solicitudes de prueba (el hilo, la tarjeta y los datos)")
     async def limpiar(self, interaction: discord.Interaction):
         if interaction.user.id not in config.EQUIPO:
             await interaction.response.send_message("Esto es solo para el equipo 🔒", ephemeral=True)
@@ -102,7 +102,7 @@ class Limpieza(commands.Cog):
         # Un menú de Discord muestra hasta 25 opciones: van las más nuevas
         altas = db.todas_las_altas()[:25]
         if not altas:
-            await interaction.response.send_message("No hay altas para borrar 👍", ephemeral=True)
+            await interaction.response.send_message("No hay solicitudes para borrar 👍", ephemeral=True)
             return
         vista = discord.ui.View(timeout=300)
         vista.add_item(MenuAltas(altas))

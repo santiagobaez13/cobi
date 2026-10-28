@@ -64,8 +64,8 @@ COMPANIAS_ALTA = {
 # Los canales donde Cobi se fija si suben PDFs de cotizaciones
 CANALES_PDF = {"cotizar", "bot-pruebas"}
 
-# El foro donde Cobi abre un hilo por cada alta
-FORO_ALTAS = "altas"
+# El foro donde Cobi abre un hilo por cada solicitud (el flujo es cotizar → solicitudes → pólizas)
+FORO_ALTAS = "solicitudes"
 
 # El foro de las pólizas emitidas (la cartera): una ficha por póliza, aparte de la historia del alta
 FORO_POLIZAS = "polizas"

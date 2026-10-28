@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 import discord
@@ -33,7 +34,7 @@ def texto_ficha(alta) -> str:
         f"🔢 N° de solicitud: {alta['n_solicitud'] or '—'}\n"
         f"📄 N° de póliza: {alta['n_poliza'] or '—'}\n"
         f"📅 Emitida el {emitida} · Vigencia: {alta['vigencia'] or '—'}\n"
-        f"📂 La historia del alta 👉 <#{alta['hilo_id']}>"
+        f"📂 La solicitud, con toda la historia 👉 <#{alta['hilo_id']}>"
     )
 
 
@@ -87,10 +88,23 @@ class ModalPoliza(discord.ui.Modal, title="Completar la póliza"):
         self.add_item(discord.ui.Label(text="N° de póliza", component=self.n_poliza))
         self.vigencia = discord.ui.TextInput(placeholder="Por ejemplo: 28/10/2026 al 28/10/2027", max_length=60, required=False, default=alta["vigencia"])
         self.add_item(discord.ui.Label(text="Vigencia", component=self.vigencia))
+        # La patente a veces no está porque no se leyó la cédula: acá se carga o se corrige
+        self.patente = discord.ui.TextInput(placeholder="Por ejemplo: AB123CD", max_length=10, required=False, default=db.datos_alta(alta).get("patente"))
+        self.add_item(discord.ui.Label(text="Patente", component=self.patente))
 
     async def on_submit(self, interaction: discord.Interaction):
         db.actualizar_alta(self.alta_id, n_poliza=self.n_poliza.value.strip() or None, vigencia=self.vigencia.value.strip() or None)
-        await interaction.response.edit_message(content=texto_ficha(db.obtener_alta(self.alta_id)), view=vista_ficha(self.alta_id))
+        patente = re.sub(r"[^A-Za-z0-9]", "", self.patente.value).upper()
+        if patente and patente != db.datos_alta(db.obtener_alta(self.alta_id)).get("patente"):
+            db.sumar_datos_alta(self.alta_id, {"patente": patente})
+        alta = db.obtener_alta(self.alta_id)
+        await interaction.response.edit_message(content=texto_ficha(alta), view=vista_ficha(self.alta_id))
+        # Si cambió la patente, también el título de la ficha (así se encuentra buscando en el foro)
+        if isinstance(interaction.channel, discord.Thread) and interaction.channel.name != titulo_ficha(alta):
+            try:
+                await interaction.channel.edit(name=titulo_ficha(alta))
+            except discord.HTTPException as e:
+                print(f"No pude cambiar el título de la ficha del alta {self.alta_id}: {e}")
 
 
 class BotonPoliza(discord.ui.DynamicItem[discord.ui.Button], template=r"poliza:completar:(?P<id>\d+)"):

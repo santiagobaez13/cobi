@@ -15,7 +15,7 @@ FORMATO_FECHA = "%Y-%m-%d %H:%M:%S"
 
 # Palabras de la charla que no son datos ("che cobi, auto patente 329jsp, ¿qué alta fue?")
 PALABRAS_DE_RELLENO = {
-    "che", "cobi", "hola", "auto", "moto", "patente", "dominio", "que", "alta", "altas", "fue", "del", "las", "los",
+    "che", "cobi", "hola", "auto", "moto", "patente", "dominio", "que", "alta", "altas", "solicitudes", "fue", "del", "las", "los",
     "una", "uno", "cual", "quien", "dni", "numero", "nro", "solicitud", "buscame", "busca", "buscar", "pasame",
     "link", "hilo", "cliente", "esta", "donde", "por", "favor", "gracias", "con", "para", "tenes", "telefono",
     "cuil", "cbu", "mail", "poliza", "anda", "estado", "como", "quedo", "era", "seguro", "vehiculo",
@@ -46,10 +46,10 @@ def puntaje(alta, buscados: list[str]) -> int:
     return total
 
 
-# "cobi altas", "cobi últimas altas", "cobi altas pendientes": la lista ordenada de la más nueva a la más vieja.
+# "cobi solicitudes", "cobi altas", "cobi solicitudes pendientes": la lista ordenada de la más nueva a la más vieja.
 # Discord en el foro muestra primero las abiertas y abajo las archivadas, así que ahí no se puede ver en orden
 PALABRAS_LISTA = {
-    "cobi", "che", "altas", "ultimas", "recientes", "lista", "ver", "las", "de", "todas", "mostrame", "pasame",
+    "cobi", "che", "altas", "solicitudes", "ultimas", "recientes", "lista", "ver", "las", "de", "todas", "mostrame", "pasame",
     "dame", "en", "curso", "pendientes", "emitidas", "rechazadas", "la", "y",
 }
 FILTROS_LISTA = {
@@ -64,7 +64,7 @@ MAX_LISTA = 15
 
 def es_lista_de_altas(texto: str) -> bool:
     palabras = re.findall(r"[a-z]+", normalizar(re.sub(r"<@[!&]?\d+>", " ", texto)))
-    return "altas" in palabras and set(palabras) <= PALABRAS_LISTA
+    return bool({"altas", "solicitudes"} & set(palabras)) and set(palabras) <= PALABRAS_LISTA
 
 
 def lista_de_altas(texto: str) -> str:
@@ -72,7 +72,7 @@ def lista_de_altas(texto: str) -> str:
     estados = [e for filtro, es in FILTROS_LISTA.items() if filtro in palabras for e in es]
     altas = [a for a in db.todas_las_altas() if not estados or a["estado"] in estados]  # ya vienen de la más nueva a la más vieja
     if not altas:
-        return "No hay altas así 👍"
+        return "No hay solicitudes así 👍"
     renglones = [
         f"`{a['creada'][8:10]}/{a['creada'][5:7]}` {ICONOS_ESTADO.get(a['estado'], '📋')} **{a['cliente']}** · "
         f"{a['compania'] or '?'} · {a['vehiculo'] or '?'} 👉 <#{a['hilo_id']}>"
@@ -80,7 +80,7 @@ def lista_de_altas(texto: str) -> str:
     ]
     if len(altas) > MAX_LISTA:
         renglones.append(f"…y {len(altas) - MAX_LISTA} más viejas")
-    return "📋 **Altas, de la más nueva a la más vieja** (📋 en curso · ⏳ pendiente · ✅ emitida · ❌ rechazada)\n" + "\n".join(renglones)
+    return "📋 **Solicitudes, de la más nueva a la más vieja** (📋 en curso · ⏳ pendiente · ✅ emitida · ❌ rechazada)\n" + "\n".join(renglones)
 
 
 def describir(alta) -> str:
@@ -195,11 +195,11 @@ class Chat(commands.Cog):
             # Acá va a entrar la IA para charlar y responder de seguros, cuando esté paga
             await message.reply(
                 "Por ahora sé:\n"
-                "🔎 **Buscar altas**: pasame la patente, el DNI, el N° de solicitud, el teléfono o el apellido\n"
+                "🔎 **Buscar solicitudes**: pasame la patente, el DNI, el N° de solicitud, el teléfono o el apellido\n"
                 "📋 **Anotar tareas**: *cobi anotá para Eze: liquidarle a Damián*\n"
                 "📝 **Decirte qué tenés pendiente**: *cobi, ¿qué tengo?* (o *¿qué tiene Eze?*)\n"
                 "📮 **Códigos postales**: *cobi cp Banfield*\n"
-                "🗂️ **Las últimas altas, en orden**: *cobi altas* (o *cobi altas pendientes*)\n"
+                "🗂️ **Las últimas solicitudes, en orden**: *cobi solicitudes* (o *cobi solicitudes pendientes*)\n"
                 "Las preguntas de seguros todavía no las aprendí 📚"
             )
             return

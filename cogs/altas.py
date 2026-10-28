@@ -563,7 +563,7 @@ class BotonAlta(discord.ui.DynamicItem[discord.ui.Button], template=r"alta:(?P<a
     async def callback(self, interaction: discord.Interaction):
         alta = db.obtener_alta(self.alta_id)
         if alta is None:
-            await interaction.response.send_message("No encontré esta alta en la base 🤔", ephemeral=True)
+            await interaction.response.send_message("No encontré esta solicitud en la base 🤔", ephemeral=True)
             return
         if self.accion not in BOTONES:
             await interaction.response.send_message("Este panel es de la versión vieja de Cobi. Usá `/panel` para traer la lista nueva 👇", ephemeral=True)
@@ -582,7 +582,7 @@ class BotonAlta(discord.ui.DynamicItem[discord.ui.Button], template=r"alta:(?P<a
             return
         if self.accion == "rechazada":
             if alta["estado"] not in ("en_curso", "esperando_docs", "pendiente_emision"):
-                await interaction.response.send_message("Esta alta ya cambió de estado 🤔", ephemeral=True)
+                await interaction.response.send_message("Esta solicitud ya cambió de estado 🤔", ephemeral=True)
                 return
             await interaction.response.send_modal(ModalRechazo(alta))
             return
@@ -602,7 +602,7 @@ class BotonAlta(discord.ui.DynamicItem[discord.ui.Button], template=r"alta:(?P<a
             db.sumar_datos_alta(self.alta_id, {"fotos": momento})
         elif self.accion == "pendiente":
             if alta["estado"] not in ("en_curso", "esperando_docs"):
-                await interaction.response.send_message("Esta alta ya cambió de estado 🤔", ephemeral=True)
+                await interaction.response.send_message("Esta solicitud ya cambió de estado 🤔", ephemeral=True)
                 return
             db.actualizar_alta(self.alta_id, estado="pendiente_emision", pendiente_desde=momento)
         elif self.accion == "emitida":
@@ -693,7 +693,7 @@ class ModalRechazo(discord.ui.Modal, title="La compañía la rechazó"):
     async def on_submit(self, interaction: discord.Interaction):
         alta = db.obtener_alta(self.alta["id"])
         if alta is None or alta["estado"] not in ("en_curso", "esperando_docs", "pendiente_emision"):
-            await interaction.response.send_message("Esta alta ya cambió de estado 🤔", ephemeral=True)
+            await interaction.response.send_message("Esta solicitud ya cambió de estado 🤔", ephemeral=True)
             return
         db.actualizar_alta(
             alta["id"], estado="rechazada", rechazada_en=ahora().strftime(FORMATO_FECHA),
@@ -770,11 +770,11 @@ class Altas(commands.Cog):
     def cog_unload(self):
         self.revisar_pendientes.cancel()
 
-    @app_commands.command(name="panel", description="Vuelve a poner la lista del alta al final del hilo")
+    @app_commands.command(name="panel", description="Vuelve a poner la lista de la solicitud al final del hilo")
     async def panel(self, interaction: discord.Interaction):
         alta = db.alta_por_hilo(interaction.channel_id)
         if alta is None:
-            await interaction.response.send_message("Esto no es un hilo de alta que yo conozca 🤔", ephemeral=True)
+            await interaction.response.send_message("Esto no es un hilo de solicitud que yo conozca 🤔", ephemeral=True)
             return
         await interaction.response.send_message("Ahí va 👇", ephemeral=True)
         await refrescar_panel(interaction.channel, alta["id"])

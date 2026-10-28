@@ -79,7 +79,8 @@ def botones_no_avanzo(cotizacion_id: int) -> discord.ui.View:
 
 
 async def crear_alta(interaction: discord.Interaction, cotizacion_id: int, cobertura: str, cliente: str, telefono: str, n_solicitud: str) -> discord.Thread:
-    foro = discord.utils.find(lambda f: mismo_nombre(f.name, config.FORO_ALTAS), interaction.guild.forums)
+    # Acepta también el nombre viejo ("altas"), por si el foro todavía no se renombró a "solicitudes"
+    foro = discord.utils.find(lambda f: any(mismo_nombre(f.name, n) for n in (config.FORO_ALTAS, "altas")), interaction.guild.forums)
     if foro is None:
         raise ErrorAlta(f"No encontré el foro **{config.FORO_ALTAS}** 🤔 Fijate que exista y que Cobi lo pueda ver.")
 
@@ -99,7 +100,7 @@ async def crear_alta(interaction: discord.Interaction, cotizacion_id: int, cober
 
     etiquetas = [e for e in (buscar_etiqueta(foro, config.ETIQUETAS_ALTA["esperando_docs"]), buscar_etiqueta(foro, datos.get("tipo", ""))) if e]
     titulo = f"{cliente} – {datos['vehiculo_corto']} {datos['anio']} – {datos['compania']}"[:100]
-    encabezado = f"🧾 **Alta de {cliente}**\n📎 Cotización: {interaction.message.jump_url}\n\n🛡️ Cobertura elegida, lista para WhatsApp:"
+    encabezado = f"🧾 **Solicitud de {cliente}**\n📎 Cotización: {interaction.message.jump_url}\n\n🛡️ Cobertura elegida, lista para WhatsApp:"
 
     contenido = f"{encabezado}\n```\n{mensaje}\n```"
     if len(contenido) <= 2000:
@@ -118,7 +119,7 @@ async def crear_alta(interaction: discord.Interaction, cotizacion_id: int, cober
     return creado.thread
 
 
-class ModalAcepto(discord.ui.Modal, title="¡Aceptó! Armemos el alta"):
+class ModalAcepto(discord.ui.Modal, title="¡Aceptó! Armemos la solicitud"):
     def __init__(self, cotizacion_id: int, coberturas: list[str], presupuesto: str | None = None):
         super().__init__()
         self.cotizacion_id = cotizacion_id
@@ -169,7 +170,7 @@ class ModalAcepto(discord.ui.Modal, title="¡Aceptó! Armemos el alta"):
         except Exception as e:
             print(f"Error armando el alta de la cotización {self.cotizacion_id}: {e}")
             db.cambiar_estado(self.cotizacion_id, "pendiente", quien)
-            await interaction.followup.send("⚠️ No pude armar el alta: la IA está saturada ahora (Gemini gratis) o algo falló. La cotización sigue pendiente, probá de nuevo en un rato.", ephemeral=True)
+            await interaction.followup.send("⚠️ No pude armar la solicitud: la IA está saturada ahora (Gemini gratis) o algo falló. La cotización sigue pendiente, probá de nuevo en un rato.", ephemeral=True)
             return
 
         db.cambiar_estado(self.cotizacion_id, "aceptada", quien)
@@ -177,7 +178,7 @@ class ModalAcepto(discord.ui.Modal, title="¡Aceptó! Armemos el alta"):
             content=cambiar_linea_estado(interaction.message.content, f"{LINEA_ESTADO['aceptada']} · {cliente} · lo marcó {quien} · {hilo.mention}"),
             view=None,
         )
-        await interaction.followup.send(f"Listo, armé el alta de **{cliente}** 👉 {hilo.mention}", ephemeral=True)
+        await interaction.followup.send(f"Listo, armé la solicitud de **{cliente}** 👉 {hilo.mention}", ephemeral=True)
 
 
 # Cada botón lleva el número de cotización en su custom_id ("cotiz:acepto:12"),
