@@ -11,6 +11,7 @@ import config
 import db
 import documentos
 import hoja
+from cogs import polizas
 from cogs.plantillas import imagen_plantilla, leer_plantilla
 from util import ahora, buscar_etiqueta, clave_compania, mismo_nombre, normalizar, slug
 
@@ -663,6 +664,12 @@ async def acomodar_despues_del_cambio(interaction: discord.Interaction, alta, ac
 
     # Si quedó pendiente aparece su tarjeta en #pendientes-emision; si se emitió o rechazó, desaparece
     await sincronizar_tarjeta(interaction.client, alta_id)
+
+    # La ficha en #polizas: se abre al emitir y se borra si vuelven atrás desde emitida
+    if accion == "emitida":
+        await polizas.crear_ficha(interaction.client, alta_id)
+    elif accion == "deshacer" and alta["estado"] == "emitida":
+        await polizas.borrar_ficha(interaction.client, alta_id)
 
     # La hoja de Google de emitidas: al emitir se carga la fila, y si vuelven atrás desde emitida se saca
     if hoja.activa():

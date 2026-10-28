@@ -32,7 +32,7 @@ def fragmentos(texto: str) -> list[str]:
 def puntaje(alta, buscados: list[str]) -> int:
     datos = db.datos_alta(alta)
     patente = re.sub(r"[^a-z0-9]", "", normalizar(datos.get("patente", "")))
-    numeros = [re.sub(r"\D", "", str(v or "")) for v in (datos.get("dni"), datos.get("cuil"), datos.get("telefono"), datos.get("cbu"), alta["n_solicitud"])]
+    numeros = [re.sub(r"\D", "", str(v or "")) for v in (datos.get("dni"), datos.get("cuil"), datos.get("telefono"), datos.get("cbu"), alta["n_solicitud"], alta["n_poliza"])]
     nombres = set(re.findall(r"[a-z]+", normalizar(" ".join(filter(None, [alta["cliente"], datos.get("apellido"), datos.get("nombre")])))))
 
     total = 0
@@ -40,7 +40,7 @@ def puntaje(alta, buscados: list[str]) -> int:
         if patente and b == patente:
             total += 10  # la patente es lo más seguro
         elif b.isdigit() and any(b == n or (len(b) >= 5 and b in n) for n in numeros if n):
-            total += 5   # DNI, CUIL, teléfono, CBU o N° de solicitud (exacto, o un pedazo de 5 números o más)
+            total += 5   # DNI, CUIL, teléfono, CBU, N° de solicitud o de póliza (exacto, o un pedazo de 5 números o más)
         elif b.isalpha() and len(b) >= 3 and b not in PALABRAS_DE_RELLENO and b in nombres:
             total += 3   # apellido o nombre
     return total
@@ -51,7 +51,7 @@ def describir(alta) -> str:
     patente = f" · {datos['patente']}" if datos.get("patente") else ""
     if alta["estado"] == "emitida":
         emitida = datetime.strptime(alta["emitida_en"], FORMATO_FECHA).strftime("%d/%m/%Y") if alta["emitida_en"] else "?"
-        estado = f"✅ Emitida el {emitida}"
+        estado = f"✅ Emitida el {emitida}" + (f" · ficha 👉 <#{alta['poliza_hilo_id']}>" if alta["poliza_hilo_id"] else "")
     elif alta["estado"] == "pendiente_emision":
         dias = (ahora() - datetime.strptime(alta["pendiente_desde"], FORMATO_FECHA)).days
         estado = f"⏳ Pendiente de emisión hace {dias} día{'s' if dias != 1 else ''} (está en #{config.CANAL_PENDIENTES})"

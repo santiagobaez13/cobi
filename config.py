@@ -67,6 +67,9 @@ CANALES_PDF = {"cotizar", "bot-pruebas"}
 # El foro donde Cobi abre un hilo por cada alta
 FORO_ALTAS = "altas"
 
+# El foro de las pólizas emitidas (la cartera): una ficha por póliza, aparte de la historia del alta
+FORO_POLIZAS = "polizas"
+
 # Las etiquetas de estado del foro de altas. Cobi las va cambiando solo a medida que avanza la lista
 ETIQUETAS_ALTA = {
     "esperando_docs": "Esperando docs",

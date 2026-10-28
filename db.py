@@ -59,6 +59,9 @@ def crear_tablas():
             "hoja": "TEXT",
             "rechazada_en": "TEXT",
             "motivo_rechazo": "TEXT",
+            "poliza_hilo_id": "INTEGER",
+            "n_poliza": "TEXT",
+            "vigencia": "TEXT",
         })
         # Lo que se borra con /limpiar queda copiado acá (en JSON), por si nos equivocamos
         con.execute("""
@@ -152,7 +155,7 @@ def alta_por_hilo(hilo_id: int) -> sqlite3.Row | None:
 
 
 # Solo dejamos tocar estas columnas, así nadie mete cualquier cosa en el UPDATE
-CAMPOS_ALTA = {"etapa", "estado", "n_solicitud", "pendiente_desde", "emitida_en", "alerta_enviada", "omitidos", "panel_id", "tarjeta_pendiente_id", "hoja", "rechazada_en", "motivo_rechazo"}
+CAMPOS_ALTA = {"etapa", "estado", "n_solicitud", "pendiente_desde", "emitida_en", "alerta_enviada", "omitidos", "panel_id", "tarjeta_pendiente_id", "hoja", "rechazada_en", "motivo_rechazo", "poliza_hilo_id", "n_poliza", "vigencia"}
 
 
 def actualizar_alta(alta_id: int, **campos):
