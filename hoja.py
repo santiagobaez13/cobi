@@ -36,8 +36,17 @@ async def _mandar(pedido: dict) -> dict:
 def armar_fila(alta, productor: str) -> list[str]:
     # Mismas columnas que la hoja: Fecha alta · Nombre · Patente · Compañía · Productor · Comentarios
     compania = config.COMPANIAS_ALTA.get(clave_compania(alta["compania"]), {}).get("nombre_hoja", alta["compania"] or "")
-    patente = (db.datos_alta(alta).get("patente") or "").upper()
-    return [ahora().strftime("%d/%m/%Y"), alta["cliente"], patente, compania, productor, ""]
+    datos = db.datos_alta(alta)
+    patente = (datos.get("patente") or "").upper()
+    return [ahora().strftime("%d/%m/%Y"), nombre_del_asegurado(alta, datos), patente, compania, productor, ""]
+
+
+def nombre_del_asegurado(alta, datos: dict) -> str:
+    # El nombre va siempre como está en el DNI que se cargó en el alta ("Albornoz Magali Agustina"), no el que
+    # se escribió al tocar Aceptó (que a veces es el de quien pidió la cotización, o un "asdasd" de apuro).
+    # Si todavía no se leyó el DNI, va el escrito
+    del_dni = " ".join(filter(None, [datos.get("apellido"), datos.get("nombre")])).strip()
+    return del_dni.title() if del_dni else alta["cliente"]
 
 
 def estado(alta) -> dict:

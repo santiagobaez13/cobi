@@ -73,6 +73,7 @@ ETIQUETAS_ALTA = {
     "cargada": "Cargada en web",
     "fotos": "Fotos enviadas",
     "emitida": "Póliza emitida",
+    "rechazada": "Rechazada",
 }
 
 # Modelos de Gemini: si el primero está saturado o sin cuota, pasamos al otro. Cada modelo tiene su propia cuota gratis,

@@ -59,6 +59,12 @@ def coberturas_del_mensaje(texto: str) -> list[str]:
     return list(sin_repetir)[:25]
 
 
+def presupuesto_del_mensaje(texto: str) -> str | None:
+    # En Nación y ATM el N° de presupuesto de la cotización termina siendo el N° de solicitud cuando el cliente acepta
+    encontrado = re.search(r"Presupuesto\s*N[°º]?\s*:?\s*([\w-]+)", texto, re.IGNORECASE)
+    return encontrado.group(1) if encontrado else None
+
+
 def botones_pendiente(cotizacion_id: int) -> discord.ui.View:
     vista = discord.ui.View(timeout=None)
     vista.add_item(BotonAcepto(cotizacion_id))
@@ -113,7 +119,7 @@ async def crear_alta(interaction: discord.Interaction, cotizacion_id: int, cober
 
 
 class ModalAcepto(discord.ui.Modal, title="¡Aceptó! Armemos el alta"):
-    def __init__(self, cotizacion_id: int, coberturas: list[str]):
+    def __init__(self, cotizacion_id: int, coberturas: list[str], presupuesto: str | None = None):
         super().__init__()
         self.cotizacion_id = cotizacion_id
 
@@ -127,9 +133,12 @@ class ModalAcepto(discord.ui.Modal, title="¡Aceptó! Armemos el alta"):
         self.cliente = discord.ui.TextInput(placeholder="Por ejemplo: Pérez Juan", max_length=60)
         self.add_item(discord.ui.Label(text="Apellido y nombre del cliente", component=self.cliente))
 
-        # El N° de solicitud sale apenas abrís el alta en la web de la compañía
-        self.solicitud = discord.ui.TextInput(placeholder="El que te dio la web de la compañía", max_length=30, required=False)
-        self.add_item(discord.ui.Label(text="N° de solicitud", description="Si todavía no lo tenés, lo pasás después", component=self.solicitud))
+        # El N° de solicitud es el mismo N° de presupuesto de la cotización (en Nación y ATM): va precargado
+        self.solicitud = discord.ui.TextInput(
+            placeholder="El que te dio la web de la compañía", max_length=30, required=False, default=presupuesto,
+        )
+        descripcion = "Es el N° de presupuesto de la cotización; cambialo si no" if presupuesto else "Si todavía no lo tenés, lo pasás después"
+        self.add_item(discord.ui.Label(text="N° de solicitud", description=descripcion, component=self.solicitud))
 
         # El teléfono lo tenés a mano del WhatsApp; si no, se carga después en el hilo
         self.telefono = discord.ui.TextInput(placeholder="Por ejemplo: 11 2345-6789", max_length=30, required=False)
@@ -192,8 +201,8 @@ class BotonAcepto(discord.ui.DynamicItem[discord.ui.Button], template=r"cotiz:ac
             await interaction.response.send_message("Esta cotización ya no está pendiente 🤔", ephemeral=True)
             return
 
-        coberturas = coberturas_del_mensaje(await texto_de_la_cotizacion(interaction.message))
-        await interaction.response.send_modal(ModalAcepto(self.cotizacion_id, coberturas))
+        texto = await texto_de_la_cotizacion(interaction.message)
+        await interaction.response.send_modal(ModalAcepto(self.cotizacion_id, coberturas_del_mensaje(texto), presupuesto_del_mensaje(texto)))
 
 
 class BotonNoAvanzo(discord.ui.DynamicItem[discord.ui.Button], template=r"cotiz:noavanzo:(?P<id>\d+)"):

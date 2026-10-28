@@ -29,6 +29,7 @@ BOTONES = {
     "omitir": ("Omitir", "⏭️", discord.ButtonStyle.secondary),
     "pendiente": ("Pendiente de emisión", "⏳", discord.ButtonStyle.secondary),
     "emitida": ("Emitida", "✅", discord.ButtonStyle.success),
+    "rechazada": ("Rechazada", "❌", discord.ButtonStyle.danger),
     "deshacer": ("Volver atrás", "↩️", discord.ButtonStyle.secondary),
 }
 
@@ -180,6 +181,9 @@ def contenido_panel(alta) -> str:
         bloque = f"```\n{solicitud_completa(alta, solo_con_datos)}\n```"
         if alta["estado"] == "emitida":
             return f"{encabezado(alta)}\n✅ **Póliza emitida** el {fecha_linda(alta['emitida_en'])} 🎉\n{bloque}"
+        if alta["estado"] == "rechazada":
+            motivo = f": {alta['motivo_rechazo']}" if alta["motivo_rechazo"] else ""
+            return f"{encabezado(alta)}\n❌ **Rechazada** el {fecha_linda(alta['rechazada_en'])}{motivo}\n{bloque}"
         if alta["estado"] == "pendiente_emision":
             return (
                 f"{encabezado(alta)}\n⏳ **Pendiente de emisión** desde el {fecha_linda(alta['pendiente_desde'])}\n{bloque}\n"
@@ -194,11 +198,11 @@ def contenido_panel(alta) -> str:
 
 def vista_panel(alta) -> discord.ui.View:
     vista = discord.ui.View(timeout=None)
-    # "Volver atrás" por si tocaron Pendiente o Emitida sin querer
-    if alta["estado"] == "emitida":
+    # "Volver atrás" por si tocaron Pendiente, Emitida o Rechazada sin querer
+    if alta["estado"] in ("emitida", "rechazada"):
         acciones = ["deshacer"]
     elif alta["estado"] == "pendiente_emision":
-        acciones = ["emitida", "deshacer"]
+        acciones = ["emitida", "rechazada", "deshacer"]
     else:
         lista = tareas(alta)
         acciones = ["mano", "solicitud"]
@@ -211,6 +215,7 @@ def vista_panel(alta) -> discord.ui.View:
             acciones.append("omitir")
         if puede_cerrar(alta, lista):
             acciones += ["emitida"] if ficha_compania(alta).get("emision_inmediata") else ["pendiente", "emitida"]
+            acciones.append("rechazada")
     for accion in acciones:
         vista.add_item(BotonAlta(accion, alta["id"]))
     return vista
@@ -298,8 +303,8 @@ async def adoptar_panel(interaction: discord.Interaction, alta):
 
 def etiqueta_de_estado(alta) -> str:
     # La etiqueta del foro sale sola de en qué anda el alta
-    if alta["estado"] == "emitida":
-        return "emitida"
+    if alta["estado"] in ("emitida", "rechazada"):
+        return alta["estado"]
     if alta["estado"] == "pendiente_emision" or db.datos_alta(alta).get("fotos"):
         return "fotos"
     if not pendientes(tareas(alta), DATOS_DEL_CLIENTE):
@@ -574,6 +579,12 @@ class BotonAlta(discord.ui.DynamicItem[discord.ui.Button], template=r"alta:(?P<a
         if self.accion == "mail":
             await interaction.response.send_message(texto_mail_fotos(alta), ephemeral=True)
             return
+        if self.accion == "rechazada":
+            if alta["estado"] not in ("en_curso", "esperando_docs", "pendiente_emision"):
+                await interaction.response.send_message("Esta alta ya cambió de estado 🤔", ephemeral=True)
+                return
+            await interaction.response.send_modal(ModalRechazo(alta))
+            return
         if self.accion == "omitir":
             menu = MenuOmitir(alta)
             if not menu.options:
@@ -600,52 +611,88 @@ class BotonAlta(discord.ui.DynamicItem[discord.ui.Button], template=r"alta:(?P<a
                 return
             db.actualizar_alta(self.alta_id, estado="emitida", emitida_en=momento)
         elif self.accion == "deshacer":
-            if alta["estado"] == "emitida":
+            if alta["estado"] in ("emitida", "rechazada"):
                 # Vuelve a donde estaba: a pendiente si había pasado por ahí (los días siguen contando desde entonces),
                 # si no a la lista en curso
-                db.actualizar_alta(self.alta_id, estado="pendiente_emision" if alta["pendiente_desde"] else "en_curso", emitida_en=None)
+                db.actualizar_alta(
+                    self.alta_id, estado="pendiente_emision" if alta["pendiente_desde"] else "en_curso",
+                    emitida_en=None, rechazada_en=None, motivo_rechazo=None,
+                )
             elif alta["estado"] == "pendiente_emision":
                 db.actualizar_alta(self.alta_id, estado="en_curso", pendiente_desde=None, alerta_enviada=None)
             else:
                 await interaction.response.send_message("No hay nada para volver atrás 👍", ephemeral=True)
                 return
 
-        # Primero le avisamos a Discord que lo recibimos (tiene 3 segundos de paciencia) y después acomodamos todo
-        await interaction.response.defer()
+        await acomodar_despues_del_cambio(interaction, alta, self.accion)
 
-        # El botón puede estar en el hilo del alta o en la tarjeta de #pendientes-emision
-        en_el_hilo = interaction.channel_id == alta["hilo_id"]
-        hilo = interaction.channel if en_el_hilo else await buscar_hilo(interaction.client, alta["hilo_id"])
-        if en_el_hilo:
-            await adoptar_panel(interaction, alta)
 
-        if hilo is not None:
-            # Al quedar pendiente, va una sola vez el mensaje de confirmación para el cliente, y la lista abajo
-            if self.accion == "pendiente" and (confirmacion := leer_plantilla("confirmacion_alta", alta["compania"])):
-                await hilo.send(f"📲 **Para mandarle al cliente** (con la orden de póliza y el certificado) 👇\n```\n{confirmacion}\n```")
-                await refrescar_panel(hilo, self.alta_id)
-            else:
-                await refrescar_panel(hilo, self.alta_id, abajo=False)
-            # Pendiente o emitida: en el hilo no queda nada por hacer, así que lo archivamos y deja de aparecer
-            # en la barra de la izquierda. Sigue estando en el foro, y si alguien escribe se reabre solo
-            # Si volvieron atrás a pendiente, también se archiva; si volvió a en curso, queda abierto para seguir
-            vuelve_a_pendiente = self.accion == "deshacer" and db.obtener_alta(self.alta_id)["estado"] == "pendiente_emision"
-            if self.accion in ("pendiente", "emitida") or vuelve_a_pendiente:
-                await archivar(hilo)
+# Lo que se le manda al cliente cuando el alta cambia de estado: (plantilla, para qué va adjunto)
+MENSAJE_AL_CLIENTE = {
+    "pendiente": ("confirmacion_alta", "con la orden de póliza y el certificado"),
+    "emitida": ("poliza_emitida", "con la póliza y la tarjeta de circulación"),
+}
 
-        # Si quedó pendiente aparece su tarjeta en #pendientes-emision; si se emitió, desaparece
-        await sincronizar_tarjeta(interaction.client, self.alta_id)
 
-        # La hoja de Google de emitidas: al emitir se carga la fila, y si vuelven atrás desde emitida se saca
-        if hoja.activa():
-            if self.accion == "emitida":
-                productor = config.EQUIPO.get(interaction.user.id, [interaction.user.display_name])[0]
-                hoja.anotar_para_cargar(self.alta_id, productor)
-                if not await hoja.cargar(self.alta_id) and hilo is not None:
-                    await hilo.send("⚠️ No pude cargarla en la hoja de emitidas (Google no contestó). La reintento sola en un rato.")
-            elif self.accion == "deshacer" and alta["estado"] == "emitida":
-                if not await hoja.sacar(self.alta_id) and hilo is not None:
-                    await hilo.send("⚠️ No pude sacarla de la hoja de emitidas: borrá esa fila a mano.")
+async def acomodar_despues_del_cambio(interaction: discord.Interaction, alta, accion: str):
+    # Ya se cambió el estado en la base (alta es cómo estaba antes): ahora acomodamos el hilo, la tarjeta y la hoja.
+    # Primero le avisamos a Discord que lo recibimos (tiene 3 segundos de paciencia) y después acomodamos todo
+    await interaction.response.defer()
+    alta_id = alta["id"]
+
+    # El botón puede estar en el hilo del alta o en la tarjeta de #pendientes-emision
+    en_el_hilo = interaction.channel_id == alta["hilo_id"]
+    hilo = interaction.channel if en_el_hilo else await buscar_hilo(interaction.client, alta["hilo_id"])
+    if en_el_hilo:
+        await adoptar_panel(interaction, alta)
+
+    if hilo is not None:
+        # Al quedar pendiente o emitida va una sola vez el mensaje para el cliente, y la lista abajo
+        plantilla, adjuntos = MENSAJE_AL_CLIENTE.get(accion, (None, None))
+        if plantilla and (texto := leer_plantilla(plantilla, alta["compania"])):
+            await hilo.send(f"📲 **Para mandarle al cliente** ({adjuntos}) 👇\n```\n{texto}\n```")
+            await refrescar_panel(hilo, alta_id)
+        else:
+            await refrescar_panel(hilo, alta_id, abajo=False)
+        # Pendiente, emitida o rechazada: en el hilo no queda nada por hacer, así que lo archivamos y deja de aparecer
+        # en la barra de la izquierda. Sigue estando en el foro, y si alguien escribe se reabre solo.
+        # Si volvieron atrás a pendiente, también se archiva; si volvió a en curso, queda abierto para seguir
+        vuelve_a_pendiente = accion == "deshacer" and db.obtener_alta(alta_id)["estado"] == "pendiente_emision"
+        if accion in ("pendiente", "emitida", "rechazada") or vuelve_a_pendiente:
+            await archivar(hilo)
+
+    # Si quedó pendiente aparece su tarjeta en #pendientes-emision; si se emitió o rechazó, desaparece
+    await sincronizar_tarjeta(interaction.client, alta_id)
+
+    # La hoja de Google de emitidas: al emitir se carga la fila, y si vuelven atrás desde emitida se saca
+    if hoja.activa():
+        if accion == "emitida":
+            productor = config.EQUIPO.get(interaction.user.id, [interaction.user.display_name])[0]
+            hoja.anotar_para_cargar(alta_id, productor)
+            if not await hoja.cargar(alta_id) and hilo is not None:
+                await hilo.send("⚠️ No pude cargarla en la hoja de emitidas (Google no contestó). La reintento sola en un rato.")
+        elif accion == "deshacer" and alta["estado"] == "emitida":
+            if not await hoja.sacar(alta_id) and hilo is not None:
+                await hilo.send("⚠️ No pude sacarla de la hoja de emitidas: borrá esa fila a mano.")
+
+
+class ModalRechazo(discord.ui.Modal, title="La compañía la rechazó"):
+    def __init__(self, alta):
+        super().__init__()
+        self.alta = alta
+        self.motivo = discord.ui.TextInput(placeholder="Por ejemplo: falló la inspección, auto con daños", max_length=200, required=False)
+        self.add_item(discord.ui.Label(text="Motivo", description="Opcional, para acordarse después", component=self.motivo))
+
+    async def on_submit(self, interaction: discord.Interaction):
+        alta = db.obtener_alta(self.alta["id"])
+        if alta is None or alta["estado"] not in ("en_curso", "esperando_docs", "pendiente_emision"):
+            await interaction.response.send_message("Esta alta ya cambió de estado 🤔", ephemeral=True)
+            return
+        db.actualizar_alta(
+            alta["id"], estado="rechazada", rechazada_en=ahora().strftime(FORMATO_FECHA),
+            motivo_rechazo=self.motivo.value.strip() or None,
+        )
+        await acomodar_despues_del_cambio(interaction, alta, "rechazada")
 
 
 def canal_por_nombre(bot, nombre: str) -> discord.TextChannel | None:
@@ -691,6 +738,7 @@ async def sincronizar_tarjeta(bot, alta_id: int):
     if alta["estado"] == "pendiente_emision":
         vista = discord.ui.View(timeout=None)
         vista.add_item(BotonAlta("emitida", alta_id))
+        vista.add_item(BotonAlta("rechazada", alta_id))
         if tarjeta:
             try:
                 await canal.get_partial_message(tarjeta).edit(content=texto_tarjeta(alta), view=vista)
@@ -729,7 +777,7 @@ class Altas(commands.Cog):
         if message.author.bot or not isinstance(message.channel, discord.Thread):
             return
         alta = db.alta_por_hilo(message.channel.id)
-        if alta is None or alta["estado"] == "emitida":
+        if alta is None or alta["estado"] in ("emitida", "rechazada"):
             return
         await procesar_mensaje(message, alta)
 

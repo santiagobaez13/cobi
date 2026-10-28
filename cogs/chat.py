@@ -55,6 +55,8 @@ def describir(alta) -> str:
     elif alta["estado"] == "pendiente_emision":
         dias = (ahora() - datetime.strptime(alta["pendiente_desde"], FORMATO_FECHA)).days
         estado = f"⏳ Pendiente de emisión hace {dias} día{'s' if dias != 1 else ''} (está en #{config.CANAL_PENDIENTES})"
+    elif alta["estado"] == "rechazada":
+        estado = "❌ Rechazada" + (f": {alta['motivo_rechazo']}" if alta["motivo_rechazo"] else "")
     else:
         estado = "📋 En curso"
     return (
