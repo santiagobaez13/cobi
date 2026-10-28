@@ -46,6 +46,43 @@ def puntaje(alta, buscados: list[str]) -> int:
     return total
 
 
+# "cobi altas", "cobi últimas altas", "cobi altas pendientes": la lista ordenada de la más nueva a la más vieja.
+# Discord en el foro muestra primero las abiertas y abajo las archivadas, así que ahí no se puede ver en orden
+PALABRAS_LISTA = {
+    "cobi", "che", "altas", "ultimas", "recientes", "lista", "ver", "las", "de", "todas", "mostrame", "pasame",
+    "dame", "en", "curso", "pendientes", "emitidas", "rechazadas", "la", "y",
+}
+FILTROS_LISTA = {
+    "curso": ("en_curso", "esperando_docs"),
+    "pendientes": ("pendiente_emision",),
+    "emitidas": ("emitida",),
+    "rechazadas": ("rechazada",),
+}
+ICONOS_ESTADO = {"pendiente_emision": "⏳", "emitida": "✅", "rechazada": "❌"}
+MAX_LISTA = 15
+
+
+def es_lista_de_altas(texto: str) -> bool:
+    palabras = re.findall(r"[a-z]+", normalizar(re.sub(r"<@[!&]?\d+>", " ", texto)))
+    return "altas" in palabras and set(palabras) <= PALABRAS_LISTA
+
+
+def lista_de_altas(texto: str) -> str:
+    palabras = set(re.findall(r"[a-z]+", normalizar(texto)))
+    estados = [e for filtro, es in FILTROS_LISTA.items() if filtro in palabras for e in es]
+    altas = [a for a in db.todas_las_altas() if not estados or a["estado"] in estados]  # ya vienen de la más nueva a la más vieja
+    if not altas:
+        return "No hay altas así 👍"
+    renglones = [
+        f"`{a['creada'][8:10]}/{a['creada'][5:7]}` {ICONOS_ESTADO.get(a['estado'], '📋')} **{a['cliente']}** · "
+        f"{a['compania'] or '?'} · {a['vehiculo'] or '?'} 👉 <#{a['hilo_id']}>"
+        for a in altas[:MAX_LISTA]
+    ]
+    if len(altas) > MAX_LISTA:
+        renglones.append(f"…y {len(altas) - MAX_LISTA} más viejas")
+    return "📋 **Altas, de la más nueva a la más vieja** (📋 en curso · ⏳ pendiente · ✅ emitida · ❌ rechazada)\n" + "\n".join(renglones)
+
+
 def describir(alta) -> str:
     datos = db.datos_alta(alta)
     patente = f" · {datos['patente']}" if datos.get("patente") else ""
@@ -142,6 +179,9 @@ class Chat(commands.Cog):
         if tareas.es_consulta(message.content):
             await tareas.mostrar(message)
             return
+        if es_lista_de_altas(message.content):
+            await message.reply(lista_de_altas(message.content), mention_author=False)
+            return
         if codigos_postales.es_pregunta(message.content):
             await message.reply(codigos_postales.responder(message.content), mention_author=False)
             return
@@ -159,6 +199,7 @@ class Chat(commands.Cog):
                 "📋 **Anotar tareas**: *cobi anotá para Eze: liquidarle a Damián*\n"
                 "📝 **Decirte qué tenés pendiente**: *cobi, ¿qué tengo?* (o *¿qué tiene Eze?*)\n"
                 "📮 **Códigos postales**: *cobi cp Banfield*\n"
+                "🗂️ **Las últimas altas, en orden**: *cobi altas* (o *cobi altas pendientes*)\n"
                 "Las preguntas de seguros todavía no las aprendí 📚"
             )
             return
