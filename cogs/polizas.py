@@ -8,7 +8,7 @@ import config
 import db
 import hoja
 import ia
-from util import buscar_etiqueta, mismo_nombre, normalizar
+from util import buscar_etiqueta, mismo_nombre, normalizar, para_la_web
 
 FORMATO_FECHA = "%Y-%m-%d %H:%M:%S"
 
@@ -25,7 +25,7 @@ def foro_polizas(bot: commands.Bot) -> discord.ForumChannel | None:
 def texto_ficha(alta) -> str:
     datos = db.datos_alta(alta)
     asegurado = hoja.nombre_del_asegurado(alta, datos)
-    dni = f" · DNI {datos['dni']}" if datos.get("dni") else ""
+    dni = f" · DNI {para_la_web('dni', datos['dni'])}" if datos.get("dni") else ""
     patente = f" · Patente **{datos['patente'].upper()}**" if datos.get("patente") else ""
     emitida = datetime.strptime(alta["emitida_en"], FORMATO_FECHA).strftime("%d/%m/%Y") if alta["emitida_en"] else "?"
     return (

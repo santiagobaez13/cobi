@@ -3,6 +3,8 @@ import sqlite3
 from contextlib import closing
 from pathlib import Path
 
+from util import para_la_web
+
 # Acá van datos de clientes: el .db está en el .gitignore y nunca se sube
 RUTA_DB = Path(__file__).parent / "cobi.db"
 
@@ -153,7 +155,7 @@ def nueva_alta(cotizacion_id: int, cliente: str, compania: str, vehiculo: str, a
             "INSERT INTO altas (cotizacion_id, cliente, compania, vehiculo, anio, tipo, cobertura, hilo_id, gnc, datos) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (cotizacion_id, cliente, compania, vehiculo, anio, tipo, cobertura, hilo_id, int(gnc),
-             json.dumps(datos or {}, ensure_ascii=False)),
+             json.dumps({k: para_la_web(k, v) for k, v in (datos or {}).items()}, ensure_ascii=False)),
         )
         return cursor.lastrowid
 
@@ -208,7 +210,8 @@ def sumar_datos_alta(alta_id: int, nuevos: dict) -> dict:
     with closing(_conectar()) as con, con:
         fila = con.execute("SELECT datos FROM altas WHERE id = ?", (alta_id,)).fetchone()
         datos = json.loads(fila["datos"]) if fila and fila["datos"] else {}
-        datos.update({clave: valor for clave, valor in nuevos.items() if valor})
+        # DNI, CUIL y teléfono se guardan solo con números (así se copian y pegan directo en la web de la compañía)
+        datos.update({clave: para_la_web(clave, valor) for clave, valor in nuevos.items() if valor})
         con.execute(
             "UPDATE altas SET datos = ?, actualizada = datetime('now', 'localtime') WHERE id = ?",
             (json.dumps(datos, ensure_ascii=False), alta_id),

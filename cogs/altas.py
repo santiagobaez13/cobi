@@ -13,7 +13,7 @@ import documentos
 import hoja
 from cogs import polizas
 from cogs.plantillas import imagen_plantilla, leer_plantilla
-from util import ahora, buscar_etiqueta, clave_compania, mismo_nombre, normalizar, slug
+from util import ahora, buscar_etiqueta, clave_compania, mismo_nombre, normalizar, para_la_web, slug
 
 # Cómo guardamos las fechas en la base
 FORMATO_FECHA = "%Y-%m-%d %H:%M:%S"
@@ -223,8 +223,9 @@ def vista_panel(alta) -> discord.ui.View:
 
 
 def solicitud_completa(alta, solo_con_datos: bool = False) -> str:
-    # Todo en texto plano y en orden, para ir cargando en la web de la compañía. Lo que falta va con "—"
-    d = db.datos_alta(alta)
+    # Todo en texto plano y en orden, para ir cargando en la web de la compañía. Lo que falta va con "—".
+    # DNI, CUIL y teléfono van solo con números (los que se guardaron antes con puntos o guiones también)
+    d = {clave: para_la_web(clave, valor) for clave, valor in db.datos_alta(alta).items()}
 
     def renglones(pares: list[tuple[str, str | None]]) -> str:
         return "\n".join(f"{nombre}: {valor or '—'}" for nombre, valor in pares if valor or not solo_con_datos)

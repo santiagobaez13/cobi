@@ -20,6 +20,32 @@ def normalizar(texto: str) -> str:
     return " ".join(sin_tildes.lower().split())
 
 
+def telefono_limpio(texto: str) -> str:
+    # Solo números, como lo piden las webs de las compañías: "+54 9 11 3664-0286" o "011 3664-0286" → "1136640286"
+    digitos = re.sub(r"\D", "", texto or "")
+    if digitos.startswith("549") and len(digitos) == 13:
+        digitos = digitos[3:]
+    elif digitos.startswith("54") and len(digitos) == 12:
+        digitos = digitos[2:]
+    if digitos.startswith("0"):
+        digitos = digitos[1:]
+    return digitos
+
+
+# Los datos que se copian y pegan en la web de la compañía van solo con números: sin puntos, espacios ni guiones
+SOLO_NUMEROS = {"dni", "cuil"}
+
+
+def para_la_web(clave: str, valor):
+    if not isinstance(valor, str) or not valor:
+        return valor
+    if clave in SOLO_NUMEROS:
+        return re.sub(r"\D", "", valor) or valor
+    if clave == "telefono":
+        return telefono_limpio(valor) or valor
+    return valor
+
+
 def mismo_nombre(nombre_canal: str, buscado: str) -> bool:
     # "pendientes-emision⌛" o "⌛ pendientes-emision" cuentan como "pendientes-emision": los emojis y tildes no importan
     return normalizar(nombre_canal or "").strip(" -_") == normalizar(buscado).strip(" -_")
