@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import discord
 from discord.ext import commands
 
+import asistente
 import codigos_postales
 import config
 import db
@@ -60,6 +61,18 @@ FILTROS_LISTA = {
 }
 ICONOS_ESTADO = {"pendiente_emision": "⏳", "emitida": "✅", "rechazada": "❌"}
 MAX_LISTA = 15
+
+
+# Lo que sabe hacer Cobi, por si el asistente no responde
+AYUDA = (
+    "Sé:\n"
+    "🔎 **Buscar solicitudes**: pasame la patente, el DNI, el N° de solicitud, el teléfono o el apellido\n"
+    "📋 **Anotar tareas**: *cobi anotá para Eze: liquidarle a Damián*\n"
+    "📝 **Decirte qué tenés pendiente**: *cobi, ¿qué tengo?* (o *¿qué tiene Eze?*)\n"
+    "📮 **Códigos postales**: *cobi cp Banfield*\n"
+    "🗂️ **Las últimas solicitudes, en orden**: *cobi solicitudes* (o *cobi solicitudes pendientes*)\n"
+    "❓ **Preguntas de seguros, resúmenes de clientes y respuestas para clientes**: *cobi, ¿cómo viene lo de Pérez?*"
+)
 
 
 def es_lista_de_altas(texto: str) -> bool:
@@ -191,21 +204,23 @@ class Chat(commands.Cog):
         buscados = fragmentos(texto)
         resultados = sorted(((puntaje(a, buscados), a) for a in db.todas_las_altas()), key=lambda r: r[0], reverse=True)
         mejor = resultados[0][0] if resultados else 0
-        if mejor == 0:
-            # Acá va a entrar la IA para charlar y responder de seguros, cuando esté paga
-            await message.reply(
-                "Por ahora sé:\n"
-                "🔎 **Buscar solicitudes**: pasame la patente, el DNI, el N° de solicitud, el teléfono o el apellido\n"
-                "📋 **Anotar tareas**: *cobi anotá para Eze: liquidarle a Damián*\n"
-                "📝 **Decirte qué tenés pendiente**: *cobi, ¿qué tengo?* (o *¿qué tiene Eze?*)\n"
-                "📮 **Códigos postales**: *cobi cp Banfield*\n"
-                "🗂️ **Las últimas solicitudes, en orden**: *cobi solicitudes* (o *cobi solicitudes pendientes*)\n"
-                "Las preguntas de seguros todavía no las aprendí 📚"
-            )
+        encontradas = [a for p, a in resultados if p == mejor][:5] if mejor else []
+
+        # Si es una pregunta, un pedido de resumen o de respuesta, o no encontramos ninguna solicitud: piensa el asistente
+        # (con los datos de la solicitud de la que se habla, si hay). Si solo pasaron una patente o un apellido, va el link
+        if not encontradas or asistente.es_pedido(texto):
+            try:
+                async with message.channel.typing():
+                    respuesta = await asistente.responder(self.bot, message, encontradas)
+            except Exception as e:
+                print(f"Error del asistente: {e}")
+                await message.reply(AYUDA + "\n⚠️ La IA no respondió recién, probá de nuevo en un rato.")
+                return
+            for pedazo in asistente.en_pedazos(respuesta or "🤔"):
+                await message.reply(pedazo, mention_author=False)
             return
 
         # Mostramos las que mejor coinciden (si hay empate, todas, hasta 5)
-        encontradas = [a for p, a in resultados if p == mejor][:5]
         encabezado = "Es esta 👇" if len(encontradas) == 1 else f"Encontré {len(encontradas)} que coinciden 👇"
         await message.reply(encabezado + "\n\n" + "\n\n".join(describir(a) for a in encontradas))
 

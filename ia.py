@@ -76,14 +76,17 @@ async def generar_json(contenido: list):
     return _texto_de_json(await generar([*contenido, "Respondé únicamente con el JSON, sin texto antes ni después."]))
 
 
-async def generar(contenido: list) -> str:
-    # contenido: PDFs e imágenes primero, después el texto del prompt (los str se pasan solos a bloque de texto)
+async def generar(contenido: list, sistema: str | None = None) -> str:
+    # contenido: PDFs e imágenes primero, después el texto del prompt (los str se pasan solos a bloque de texto).
+    # sistema: las instrucciones fijas (quién es Cobi, la biblioteca). Van en caché, así si preguntan seguido sale más barato
     bloques = [{"type": "text", "text": c} if isinstance(c, str) else c for c in contenido]
+    extras = {"system": [{"type": "text", "text": sistema, "cache_control": {"type": "ephemeral"}}]} if sistema else {}
     respuesta = await _cliente.messages.create(
         model=config.MODELO_IA,
         max_tokens=16000,
         output_config={"effort": config.ESFUERZO_IA},
         messages=[{"role": "user", "content": bloques}],
+        **extras,
     )
     if respuesta.stop_reason == "refusal":
         raise RuntimeError("Claude no quiso responder ese pedido")
