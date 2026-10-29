@@ -44,8 +44,23 @@ def pdf(datos: bytes) -> dict:
     return {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": _base64(datos)}}
 
 
+def tipo_real(datos: bytes) -> str | None:
+    # Discord a veces dice "webp" y el archivo es un png (pasa con fotos que vienen de WhatsApp), y Claude lo rechaza.
+    # Así que miramos los primeros bytes del archivo, que no mienten
+    if datos.startswith(b"\x89PNG"):
+        return "image/png"
+    if datos.startswith(b"\xff\xd8"):
+        return "image/jpeg"
+    if datos.startswith((b"GIF87a", b"GIF89a")):
+        return "image/gif"
+    if datos[:4] == b"RIFF" and datos[8:12] == b"WEBP":
+        return "image/webp"
+    return None
+
+
 def imagen(datos: bytes, tipo: str) -> dict:
-    # tipo es el mime de la imagen, por ejemplo "image/jpeg"
+    # tipo es el mime que dice Discord ("image/jpeg"...), pero manda el que sale del archivo
+    tipo = tipo_real(datos) or tipo
     if tipo not in FORMATOS_IMAGEN or len(datos) > MAX_BYTES_IMAGEN:
         datos, tipo = _achicar(datos)
     return {"type": "image", "source": {"type": "base64", "media_type": tipo, "data": _base64(datos)}}
