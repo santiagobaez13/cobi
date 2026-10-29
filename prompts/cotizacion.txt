@@ -8,8 +8,8 @@ Compañía: [Compañía]
 
 Opciones de cobertura:
 
-* [Nombre amigable]: $[premio] por [mes, bimestre, etc., según la vigencia del PDF]
-* [Nombre amigable]: $[premio] por [...]
+* [Nombre amigable]: $[premio] por mes
+* [Nombre amigable]: $[premio] por mes
 
 El [nombre de la cobertura más completa] incluye [beneficios principales] y otros beneficios adicionales.
 
@@ -48,11 +48,12 @@ REGLAS:
   🛡️ Cobertura: [nombre amigable]
   Incluye:
   ✔️ [un beneficio por línea]
-  💳 Valor: $[premio] por [período]
+  💳 Valor: $[premio] por mes
   Si el PDF aclara que incluye seguro de vida, sumalo como un ✔️ más.
 - Para débito en CBU poné "Débito Automático" (aunque el PDF diga cosas como "CBU (CVU no habilitadas)"); para tarjeta, "Tarjeta de Crédito".
 - Una sola línea de 💳 Forma de pago, aunque el PDF repita la forma de pago en varios lugares.
-- Todas las compañías (Nación, ATM o la que sea) van con el mismo formato del ejemplo: un precio por cobertura con su período, sin detallar cantidad de cuotas ni vigencias técnicas.
+- Todas las compañías (Nación, ATM o la que sea) van con el mismo formato del ejemplo: un precio por cobertura, sin detallar cantidad de cuotas ni vigencias técnicas.
+- El precio que va es la cuota, y las cuotas son SIEMPRE MENSUALES: poné siempre "por mes". Ojo con el PDF: "anual" es la vigencia de la póliza (no que se pague por año), y "bimestral", "trimestral", etc. es cada cuánto se refactura (se actualiza) la cuota, no cada cuánto se paga. Nunca pongas "por año" ni "por bimestre".
 - No incluyas datos del tomador ni del productor.
 - No inventes nada que no esté en el PDF.
 - Respondé únicamente con el mensaje, sin comentarios.

@@ -20,8 +20,9 @@ Te paso la comparativa de las cotizaciones para tu vehículo 👇
 
 Reglas:
 - Agrupá por coberturas equivalentes aunque cada compañía les ponga otro nombre (por ejemplo "RC + Robo/Incendio Total" con "Responsabilidad Civil + Robo e Incendio Total"). Si una cobertura no tiene equivalente en la otra compañía, ponela sola en su bloque.
-- Marcá con ✅ la más barata de cada bloque.
-- Precios exactamente como figuran en los mensajes, con su período (por mes, por bimestre...). Si los períodos no son iguales, aclaralo en vez de comparar números que no se pueden comparar.
+- Marcá con ✅ la más barata de cada bloque, solo si en el bloque hay más de una opción para comparar.
+- Todos los precios son cuotas mensuales ("por mes").
+- Precios exactamente como figuran en los mensajes.
 - Si las sumas aseguradas son distintas entre compañías, aclaralo en el 💡.
 - Negrita de WhatsApp con un solo asterisco (*así*).
 - No inventes nada que no esté en los mensajes. Respondé únicamente con el mensaje.

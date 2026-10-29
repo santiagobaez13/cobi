@@ -52,6 +52,6 @@ REGLAS:
 - Si el PDF no trae datos de grúa o asistencia mecánica, sacá esa sección entera.
 - Si el PDF no trae la localidad de riesgo, sacá esa línea.
 - Precios y sumas en formato argentino, exactamente como figuran en el PDF.
-- Si la vigencia no es mensual, cambiá "Valor mensual" por el período que corresponda (por ejemplo "Valor bimestral").
+- Siempre "Valor mensual": las cuotas son mensuales. "Anual" en el PDF es la vigencia, y "bimestral", "trimestral", etc. es cada cuánto se refactura la cuota, no cada cuánto se paga.
 - No incluyas datos del tomador ni del productor.
 - No inventes nada que no esté en el PDF.
