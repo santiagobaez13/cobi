@@ -7,7 +7,8 @@ from discord.ext import commands
 import config
 import db
 import hoja
-from util import buscar_etiqueta, mismo_nombre
+import ia
+from util import buscar_etiqueta, mismo_nombre, normalizar
 
 FORMATO_FECHA = "%Y-%m-%d %H:%M:%S"
 
@@ -124,5 +125,80 @@ class BotonPoliza(discord.ui.DynamicItem[discord.ui.Button], template=r"poliza:c
         await interaction.response.send_modal(ModalPoliza(alta))
 
 
+def es_pdf(adjunto: discord.Attachment) -> bool:
+    return adjunto.filename.lower().endswith(".pdf") or (adjunto.content_type or "").startswith("application/pdf")
+
+
+def mismas_personas(uno: str, otro: str) -> bool:
+    # "Albornoz Magali Agustina" y "ALBORNOZ, MAGALI A." son la misma: alcanza con que compartan alguna palabra larga
+    palabras = lambda t: {p for p in re.findall(r"[a-z]+", normalizar(t)) if len(p) > 2}
+    return bool(palabras(uno) & palabras(otro))
+
+
+async def leer_pdf_de_la_ficha(message: discord.Message, alta) -> list[str]:
+    # Lee los PDFs que subieron a la ficha (la póliza, el certificado...) y completa lo que falte.
+    # Devuelve los avisos para el productor (si algo no coincide)
+    avisos, cambios = [], {}
+    datos = db.datos_alta(alta)
+    for adjunto in (a for a in message.attachments if es_pdf(a)):
+        leido = await ia.generar_json([ia.pdf(await adjunto.read()), ia.leer_prompt("poliza")])
+        if leido.get("documento") == "otro":
+            avisos.append(f"🤔 **{adjunto.filename}** no parece una póliza ni un certificado, no saqué nada de ahí.")
+            continue
+        # Si es de otra persona no cargamos nada: mejor avisar que ensuciar la ficha
+        asegurado = hoja.nombre_del_asegurado(alta, datos)
+        if leido.get("asegurado") and not mismas_personas(leido["asegurado"], asegurado):
+            avisos.append(
+                f"⚠️ En **{adjunto.filename}** el asegurado es **{leido['asegurado']}** y en la ficha **{asegurado}**. "
+                "No cargué nada: ¿es la póliza de este cliente?"
+            )
+            continue
+        if leido.get("n_poliza") and leido.get("documento") == "poliza":
+            cambios["n_poliza"] = leido["n_poliza"]
+        if leido.get("vigencia_desde") and leido.get("vigencia_hasta"):
+            cambios["vigencia"] = f"{leido['vigencia_desde']} al {leido['vigencia_hasta']}"
+        patente = re.sub(r"[^A-Za-z0-9]", "", leido.get("patente") or "").upper()
+        if patente and not datos.get("patente"):
+            db.sumar_datos_alta(alta["id"], {"patente": patente})
+        elif patente and patente != datos["patente"].upper():
+            avisos.append(f"⚠️ En **{adjunto.filename}** la patente es **{patente}** y en la ficha **{datos['patente'].upper()}**. Fijate cuál está bien.")
+    if cambios:
+        db.actualizar_alta(alta["id"], **cambios)
+    return avisos
+
+
+class Polizas(commands.Cog):
+    @commands.Cog.listener()
+    async def on_message(self, message: discord.Message):
+        # Si suben un PDF a una ficha de #polizas, Cobi lo lee y la completa (N° de póliza, vigencia, patente)
+        hilo = message.channel
+        if message.author.bot or not isinstance(hilo, discord.Thread) or not any(es_pdf(a) for a in message.attachments):
+            return
+        if hilo.parent is None or not mismo_nombre(hilo.parent.name, config.FORO_POLIZAS):
+            return
+        alta = db.alta_por_ficha(hilo.id)
+        if alta is None:
+            return
+        try:
+            async with hilo.typing():
+                avisos = await leer_pdf_de_la_ficha(message, alta)
+        except Exception as e:
+            print(f"Error leyendo la póliza de la ficha del alta {alta['id']}: {e}")
+            await message.reply("⚠️ No pude leer el PDF (la IA no respondió). Subilo de nuevo en un rato.")
+            return
+
+        alta = db.obtener_alta(alta["id"])
+        try:
+            await hilo.get_partial_message(hilo.id).edit(content=texto_ficha(alta), view=vista_ficha(alta["id"]))
+            if hilo.name != titulo_ficha(alta):
+                await hilo.edit(name=titulo_ficha(alta))
+        except discord.HTTPException as e:
+            print(f"No pude actualizar la ficha del alta {alta['id']}: {e}")
+        await message.add_reaction("⚠️" if avisos else "✅")
+        if avisos:
+            await message.reply("\n".join(avisos), mention_author=False)
+
+
 async def setup(bot: commands.Bot):
     bot.add_dynamic_items(BotonPoliza)
+    await bot.add_cog(Polizas())

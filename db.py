@@ -154,6 +154,12 @@ def alta_por_hilo(hilo_id: int) -> sqlite3.Row | None:
         return con.execute("SELECT * FROM altas WHERE hilo_id = ?", (hilo_id,)).fetchone()
 
 
+def alta_por_ficha(hilo_id: int) -> sqlite3.Row | None:
+    # La de la ficha de #polizas (no la del hilo de la solicitud)
+    with closing(_conectar()) as con:
+        return con.execute("SELECT * FROM altas WHERE poliza_hilo_id = ?", (hilo_id,)).fetchone()
+
+
 # Solo dejamos tocar estas columnas, así nadie mete cualquier cosa en el UPDATE
 CAMPOS_ALTA = {"etapa", "estado", "n_solicitud", "pendiente_desde", "emitida_en", "alerta_enviada", "omitidos", "panel_id", "tarjeta_pendiente_id", "hoja", "rechazada_en", "motivo_rechazo", "poliza_hilo_id", "n_poliza", "vigencia"}
 
