@@ -34,6 +34,22 @@ async def armar_mensaje(pdf_bytes: bytes) -> str:
     return texto.replace("```", "")
 
 
+async def mandar_comparativa(message: discord.Message, armados: list[str]):
+    try:
+        async with message.channel.typing():
+            texto = await ia.generar([ia.leer_prompt("comparativa", cotizaciones="\n-----\n".join(armados))])
+    except Exception as e:
+        print(f"Error armando la comparativa: {e}")
+        await message.reply("⚠️ No pude armar la comparativa (la IA no respondió). Las cotizaciones de arriba están bien.")
+        return
+    texto = texto.replace("```", "")
+    if len(texto) <= 1800:
+        await message.reply(f"⚖️ **Comparativa** lista para WhatsApp:\n```\n{texto}\n```")
+    else:
+        archivo = discord.File(io.BytesIO(texto.encode("utf-8")), filename="comparativa_whatsapp.txt")
+        await message.reply("⚖️ **Comparativa** (quedó larga, va en archivo):", file=archivo)
+
+
 def cambiar_linea_estado(contenido: str, nueva_linea: str) -> str:
     _, _, resto = contenido.partition("\n")
     return f"{nueva_linea}\n{resto}"
@@ -265,6 +281,7 @@ class Cotizaciones(commands.Cog):
             return
 
         pdfs = [a for a in message.attachments if a.filename.lower().endswith(".pdf")]
+        armados = []
 
         for adjunto in pdfs:
             async with message.channel.typing():
@@ -297,6 +314,11 @@ class Cotizaciones(commands.Cog):
                 )
 
             db.guardar_mensaje_cobi(cotizacion_id, respuesta.id)
+            armados.append(texto)
+
+        # Si subieron varias juntas (el mismo cliente en Nación y ATM), además va la comparativa
+        if len(armados) >= 2:
+            await mandar_comparativa(message, armados)
 
 
 async def setup(bot: commands.Bot):
