@@ -164,7 +164,7 @@ async def leer(imagenes: list[tuple[bytes, str]]) -> list[dict]:
 
     leidos = []
     for tanda in tandas:
-        respuesta = await ia.generar_json([*(ia.imagen(d, t) for d, t in tanda), ia.leer_prompt("documentos")])
+        respuesta = await ia.generar_json([*(ia.imagen(d, t) for d, t in tanda), ia.leer_prompt("documentos")], tarea="documentos")
         # A veces la IA devuelve la lista directo en vez de {"documentos": [...]}: aceptamos las dos
         lista = respuesta.get("documentos", []) if isinstance(respuesta, dict) else respuesta
         for doc in lista if isinstance(lista, list) else []:

@@ -88,7 +88,7 @@ async def responder(bot: discord.Client, message: discord.Message, altas: list) 
     quien = config.EQUIPO.get(message.author.id, [message.author.display_name])[0]
     pregunta = re.sub(r"<@[!&]?\d+>", " ", message.content).strip()
     datos = "\n\n".join(partes) if partes else "(No se habló de ningún cliente en particular.)"
-    return await ia.generar([f"# DATOS DEL CLIENTE\n\n{datos}\n\n# PREGUNTA DE {quien.upper()}\n\n{pregunta}"], sistema=instrucciones())
+    return await ia.generar([f"# DATOS DEL CLIENTE\n\n{datos}\n\n# PREGUNTA DE {quien.upper()}\n\n{pregunta}"], sistema=instrucciones(), tarea="asistente")
 
 
 def en_pedazos(texto: str, largo: int = 1900) -> list[str]:

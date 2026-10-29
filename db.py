@@ -72,6 +72,20 @@ def crear_tablas():
                 borrada TEXT NOT NULL
             )
         """)
+        # Cada pedido a la IA: qué tarea, cuántos tokens y cuánto costó (para "cobi consumo")
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS consumo (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fecha TEXT NOT NULL,
+                tarea TEXT NOT NULL,
+                modelo TEXT NOT NULL,
+                entrada INTEGER NOT NULL,
+                salida INTEGER NOT NULL,
+                cache_leida INTEGER NOT NULL,
+                cache_escrita INTEGER NOT NULL,
+                costo REAL NOT NULL
+            )
+        """)
         # Las tareas del equipo ("cobi anotá para Eze: ..."). para_cuando va como AAAA-MM-DD
         con.execute("""
             CREATE TABLE IF NOT EXISTS tareas (
@@ -283,3 +297,21 @@ def borrar_alta(alta_id: int, momento: str):
         con.execute("DELETE FROM altas WHERE id = ?", (alta_id,))
         if cotizacion is not None:
             con.execute("DELETE FROM cotizaciones WHERE id = ?", (cotizacion["id"],))
+
+
+def anotar_consumo(fecha: str, tarea: str, modelo: str, entrada: int, salida: int, cache_leida: int, cache_escrita: int, costo: float):
+    with closing(_conectar()) as con, con:
+        con.execute(
+            "INSERT INTO consumo (fecha, tarea, modelo, entrada, salida, cache_leida, cache_escrita, costo) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            (fecha, tarea, modelo, entrada, salida, cache_leida, cache_escrita, costo),
+        )
+
+
+def consumo_entre(desde: str, hasta: str = "9999-12-31") -> list[sqlite3.Row]:
+    # Por tarea: cuántos pedidos y cuánto costaron, entre esas fechas (AAAA-MM-DD, "hasta" sin incluir)
+    with closing(_conectar()) as con:
+        return con.execute(
+            "SELECT tarea, COUNT(*) AS pedidos, SUM(costo) AS costo, SUM(entrada + cache_leida + cache_escrita) AS entrada, SUM(salida) AS salida "
+            "FROM consumo WHERE fecha >= ? AND fecha < ? GROUP BY tarea ORDER BY costo DESC",
+            (desde, hasta),
+        ).fetchall()

@@ -7,6 +7,7 @@ from discord.ext import commands
 
 import asistente
 import codigos_postales
+import consumo
 import config
 import db
 from cogs import tareas
@@ -194,6 +195,9 @@ class Chat(commands.Cog):
             return
         if es_lista_de_altas(message.content):
             await message.reply(lista_de_altas(message.content), mention_author=False)
+            return
+        if consumo.es_pregunta(message.content):
+            await message.reply(consumo.responder(), mention_author=False)
             return
         if codigos_postales.es_pregunta(message.content):
             await message.reply(codigos_postales.responder(message.content), mention_author=False)

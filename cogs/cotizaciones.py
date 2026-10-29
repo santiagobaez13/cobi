@@ -30,14 +30,14 @@ def es_canal_de_cotizaciones(canal) -> bool:
 
 
 async def armar_mensaje(pdf_bytes: bytes) -> str:
-    texto = await ia.generar([ia.pdf(pdf_bytes), ia.leer_prompt("cotizacion")])
+    texto = await ia.generar([ia.pdf(pdf_bytes), ia.leer_prompt("cotizacion")], tarea="cotizacion")
     return texto.replace("```", "")
 
 
 async def mandar_comparativa(message: discord.Message, armados: list[str]):
     try:
         async with message.channel.typing():
-            texto = await ia.generar([ia.leer_prompt("comparativa", cotizaciones="\n-----\n".join(armados))])
+            texto = await ia.generar([ia.leer_prompt("comparativa", cotizaciones="\n-----\n".join(armados))], tarea="comparativa")
     except Exception as e:
         print(f"Error armando la comparativa: {e}")
         await message.reply("⚠️ No pude armar la comparativa (la IA no respondió). Las cotizaciones de arriba están bien.")
@@ -111,7 +111,7 @@ async def crear_alta(interaction: discord.Interaction, cotizacion_id: int, cober
     if adjunto is None:
         raise ErrorAlta("El mensaje de la cotización ya no tiene el PDF 🤔")
 
-    datos = await ia.generar_json([ia.pdf(await adjunto.read()), ia.leer_prompt("cobertura_elegida", cobertura=cobertura)])
+    datos = await ia.generar_json([ia.pdf(await adjunto.read()), ia.leer_prompt("cobertura_elegida", cobertura=cobertura)], tarea="acepto")
     mensaje = datos["mensaje"].replace("```", "").strip()
 
     etiquetas = [e for e in (buscar_etiqueta(foro, config.ETIQUETAS_ALTA["esperando_docs"]), buscar_etiqueta(foro, datos.get("tipo", ""))) if e]

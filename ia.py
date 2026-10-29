@@ -8,6 +8,8 @@ import anthropic
 from PIL import Image
 
 import config
+import db
+from util import ahora
 
 CARPETA_PROMPTS = Path(__file__).parent / "prompts"
 
@@ -72,11 +74,25 @@ def _texto_de_json(texto: str):
         return json.loads(texto[inicio:fin + 1])
 
 
-async def generar_json(contenido: list):
-    return _texto_de_json(await generar([*contenido, "Respondé únicamente con el JSON, sin texto antes ni después."]))
+async def generar_json(contenido: list, tarea: str = "otra"):
+    return _texto_de_json(await generar([*contenido, "Respondé únicamente con el JSON, sin texto antes ni después."], tarea=tarea))
 
 
-async def generar(contenido: list, sistema: str | None = None) -> str:
+def anotar_consumo(tarea: str, uso):
+    # Cuánto costó este pedido, para "cobi consumo". Si algo falla al anotar, no frenamos a Cobi por eso
+    try:
+        precios = config.PRECIOS_IA.get(config.MODELO_IA, {})
+        leida, escrita = uso.cache_read_input_tokens or 0, uso.cache_creation_input_tokens or 0
+        grande = uso.input_tokens + leida + escrita > 100_000
+        entrada = precios.get("entrada_grande" if grande else "entrada", 0)
+        salida = precios.get("salida_grande" if grande else "salida", 0)
+        costo = (uso.input_tokens * entrada + leida * entrada * 0.1 + escrita * entrada * 1.25 + uso.output_tokens * salida) / 1_000_000
+        db.anotar_consumo(ahora().strftime("%Y-%m-%d %H:%M:%S"), tarea, config.MODELO_IA, uso.input_tokens, uso.output_tokens, leida, escrita, costo)
+    except Exception as e:
+        print(f"No pude anotar el consumo de la IA: {e}")
+
+
+async def generar(contenido: list, sistema: str | None = None, tarea: str = "otra") -> str:
     # contenido: PDFs e imágenes primero, después el texto del prompt (los str se pasan solos a bloque de texto).
     # sistema: las instrucciones fijas (quién es Cobi, la biblioteca). Van en caché, así si preguntan seguido sale más barato
     bloques = [{"type": "text", "text": c} if isinstance(c, str) else c for c in contenido]
@@ -88,6 +104,7 @@ async def generar(contenido: list, sistema: str | None = None) -> str:
         messages=[{"role": "user", "content": bloques}],
         **extras,
     )
+    anotar_consumo(tarea, respuesta.usage)
     if respuesta.stop_reason == "refusal":
         raise RuntimeError("Claude no quiso responder ese pedido")
     # La respuesta puede traer bloques de "pensamiento" antes del texto: juntamos solo el texto

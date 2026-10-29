@@ -141,7 +141,7 @@ async def leer_pdf_de_la_ficha(message: discord.Message, alta) -> list[str]:
     avisos, cambios = [], {}
     datos = db.datos_alta(alta)
     for adjunto in (a for a in message.attachments if es_pdf(a)):
-        leido = await ia.generar_json([ia.pdf(await adjunto.read()), ia.leer_prompt("poliza")])
+        leido = await ia.generar_json([ia.pdf(await adjunto.read()), ia.leer_prompt("poliza")], tarea="poliza")
         if leido.get("documento") == "otro":
             avisos.append(f"🤔 **{adjunto.filename}** no parece una póliza ni un certificado, no saqué nada de ahí.")
             continue

@@ -87,3 +87,9 @@ ESFUERZO_IA = "medium"
 # Segundos que le damos a cada intento y cuántas veces reintenta si Claude está saturado
 ESPERA_MAXIMA_IA = 90
 REINTENTOS_IA = 2
+# Lo que cobra Anthropic, en dólares por millón de tokens, para "cobi consumo". La caché leída sale una décima parte
+# y la escrita un 25% más. Haiku cobra más caro si el pedido pasa los 100.000 tokens (no debería pasar)
+PRECIOS_IA = {
+    "claude-haiku-5-5": {"entrada": 0.10, "salida": 0.50, "entrada_grande": 0.50, "salida_grande": 2.50},
+    "claude-sonnet-5-5": {"entrada": 2.00, "salida": 10.00, "entrada_grande": 2.00, "salida_grande": 10.00},
+}
