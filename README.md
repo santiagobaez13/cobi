@@ -49,9 +49,9 @@ Los clientes no entran al Discord: siguen hablando por WhatsApp. Cobi le deja al
 
 ## Tecnologías
 
-- Python 3.11
+- Python 3.12
 - [discord.py](https://discordpy.readthedocs.io/)
-- Google Gemini (`google-genai`) para leer PDFs e imágenes
+- Claude (Haiku), de Anthropic, para leer PDFs e imágenes
 - SQLite
 
 ## Estructura
@@ -59,7 +59,7 @@ Los clientes no entran al Discord: siguen hablando por WhatsApp. Cobi le deja al
 ```
 main.py               ← arranca a Cobi y carga los cogs
 config.py             ← empresa, compañías, canales, alertas y modelos de IA
-ia.py                 ← todo lo de la IA, con reintentos si está saturada
+ia.py                 ← todo lo de la IA (Claude)
 db.py                 ← la base de datos (SQLite)
 documentos.py         ← lectura de documentos, CBU, bancos y datos escritos
 util.py               ← cositas compartidas (nombres, etiquetas)
@@ -85,7 +85,7 @@ Los prompts y las plantillas están en archivos aparte para poder ajustarlos sin
    ```
 2. Copiá `.env.example` a `.env` y completá las claves:
    - `DISCORD_TOKEN`: el token del bot, del [Developer Portal de Discord](https://discord.com/developers/applications).
-   - `GEMINI_API_KEY`: la clave de [Google AI Studio](https://aistudio.google.com/).
+   - `ANTHROPIC_API_KEY`: la clave de la [consola de Anthropic](https://console.anthropic.com/).
 3. Arrancalo:
    ```bash
    python main.py

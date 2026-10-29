@@ -170,7 +170,7 @@ class ModalAcepto(discord.ui.Modal, title="¡Aceptó! Armemos la solicitud"):
         except Exception as e:
             print(f"Error armando el alta de la cotización {self.cotizacion_id}: {e}")
             db.cambiar_estado(self.cotizacion_id, "pendiente", quien)
-            await interaction.followup.send("⚠️ No pude armar la solicitud: la IA está saturada ahora (Gemini gratis) o algo falló. La cotización sigue pendiente, probá de nuevo en un rato.", ephemeral=True)
+            await interaction.followup.send("⚠️ No pude armar la solicitud: la IA no respondió o algo falló. La cotización sigue pendiente, probá de nuevo en un rato.", ephemeral=True)
             return
 
         db.cambiar_estado(self.cotizacion_id, "aceptada", quien)
@@ -273,7 +273,7 @@ class Cotizaciones(commands.Cog):
                     texto = await armar_mensaje(pdf_bytes)
                 except Exception as e:
                     print(f"Error procesando {adjunto.filename}: {e}")
-                    await message.reply(f"⚠️ No pude leer **{adjunto.filename}**: la IA está saturada ahora (Gemini gratis). Subilo de nuevo en un rato.")
+                    await message.reply(f"⚠️ No pude leer **{adjunto.filename}**: la IA no respondió. Subilo de nuevo en un rato.")
                     continue
 
             if not texto:

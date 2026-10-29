@@ -4,10 +4,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
 # El script de la hoja de Google de emitidas (ver hoja.py). Si no están, Cobi no carga nada en la hoja
 HOJA_EMITIDAS_URL = os.getenv("HOJA_EMITIDAS_URL")
 HOJA_EMITIDAS_CLAVE = os.getenv("HOJA_EMITIDAS_CLAVE")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # El nombre de la productora, lo usan los prompts y los mensajes de Cobi. Si cambia, se toca acá y listo
 EMPRESA = "SER Seguros"
@@ -79,10 +79,11 @@ ETIQUETAS_ALTA = {
     "rechazada": "Rechazada",
 }
 
-# Modelos de Gemini: si el primero está saturado o sin cuota, pasamos al otro. Cada modelo tiene su propia cuota gratis,
-# así que tener varios da más chances. El flash-lite lo sacamos porque se cuelga sin contestar
-MODELOS = ["gemini-3.6-flash", "gemini-3.5-flash", "gemini-flash-latest"]
-# Cuántas vueltas por todos los modelos antes de rendirse, y cuántos segundos le damos a cada intento.
-# Con Gemini gratis saturado no tiene sentido insistir minutos: probamos una vez cada modelo y avisamos
-VUELTAS_DE_REINTENTO = 1
-ESPERA_MAXIMA_IA = 30
+# La IA es Claude, de Anthropic. Haiku es el más barato y rápido; si algún día no le alcanza para leer
+# documentos difíciles, se cambia por "claude-sonnet-5-5" acá y listo
+MODELO_IA = "claude-haiku-5-5"
+# Cuánto piensa antes de responder: "low", "medium" o "high". Más alto = más fino pero más lento y caro
+ESFUERZO_IA = "medium"
+# Segundos que le damos a cada intento y cuántas veces reintenta si Claude está saturado
+ESPERA_MAXIMA_IA = 90
+REINTENTOS_IA = 2

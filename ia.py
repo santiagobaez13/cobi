@@ -1,18 +1,28 @@
-import asyncio
+import base64
+import io
 import json
+import re
 from pathlib import Path
 
-from google import genai
-from google.genai import types
+import anthropic
+from PIL import Image
 
 import config
 
 CARPETA_PROMPTS = Path(__file__).parent / "prompts"
 
-_cliente = genai.Client(api_key=config.GEMINI_API_KEY)
-_sin_afc = types.AutomaticFunctionCallingConfig(disable=True)
-_config_texto = types.GenerateContentConfig(automatic_function_calling=_sin_afc)
-_config_json = types.GenerateContentConfig(automatic_function_calling=_sin_afc, response_mime_type="application/json")
+# El SDK ya reintenta solo si Claude está saturado o se corta la conexión (429, 5xx), no hace falta hacerlo a mano
+_cliente = anthropic.AsyncAnthropic(
+    api_key=config.ANTHROPIC_API_KEY,
+    timeout=config.ESPERA_MAXIMA_IA,
+    max_retries=config.REINTENTOS_IA,
+)
+
+# Claude lee estos formatos de imagen; cualquier otro (HEIC, por ejemplo) lo pasamos a JPEG antes
+FORMATOS_IMAGEN = {"image/jpeg", "image/png", "image/gif", "image/webp"}
+# Claude no acepta imágenes de más de 5 MB. Las fotos de celular pesadas las achicamos (igual Claude las achica por su cuenta)
+MAX_BYTES_IMAGEN = 4_500_000
+LADO_MAXIMO = 2500
 
 
 def leer_prompt(nombre: str, **datos: str) -> str:
@@ -24,45 +34,58 @@ def leer_prompt(nombre: str, **datos: str) -> str:
     return texto
 
 
-def pdf(datos: bytes):
-    return types.Part.from_bytes(data=datos, mime_type="application/pdf")
+def _base64(datos: bytes) -> str:
+    return base64.standard_b64encode(datos).decode("utf-8")
 
 
-def imagen(datos: bytes, tipo: str):
+def pdf(datos: bytes) -> dict:
+    return {"type": "document", "source": {"type": "base64", "media_type": "application/pdf", "data": _base64(datos)}}
+
+
+def imagen(datos: bytes, tipo: str) -> dict:
     # tipo es el mime de la imagen, por ejemplo "image/jpeg"
-    return types.Part.from_bytes(data=datos, mime_type=tipo)
+    if tipo not in FORMATOS_IMAGEN or len(datos) > MAX_BYTES_IMAGEN:
+        datos, tipo = _achicar(datos)
+    return {"type": "image", "source": {"type": "base64", "media_type": tipo, "data": _base64(datos)}}
 
 
-async def generar_json(contenido: list) -> dict:
-    return json.loads(await generar(contenido, _config_json))
+def _achicar(datos: bytes) -> tuple[bytes, str]:
+    # La pasamos a JPEG y, si es enorme, la achicamos sin perder lo que se lee
+    foto = Image.open(io.BytesIO(datos))
+    foto.thumbnail((LADO_MAXIMO, LADO_MAXIMO))
+    salida = io.BytesIO()
+    foto.convert("RGB").save(salida, format="JPEG", quality=90)
+    return salida.getvalue(), "image/jpeg"
 
 
-async def generar(contenido: list, ajustes=_config_texto) -> str:
-    ultimo_error = None
+def _texto_de_json(texto: str):
+    # Pedimos solo JSON, pero por las dudas sacamos el ```json ... ``` si viene envuelto
+    texto = re.sub(r"^```(?:json)?\s*|\s*```$", "", texto.strip())
+    try:
+        return json.loads(texto)
+    except json.JSONDecodeError:
+        # Si le agregó algo antes o después, nos quedamos con lo que va de la primera llave a la última
+        inicio = min((i for i in (texto.find("{"), texto.find("[")) if i != -1), default=-1)
+        fin = max(texto.rfind("}"), texto.rfind("]"))
+        if inicio == -1 or fin <= inicio:
+            raise
+        return json.loads(texto[inicio:fin + 1])
 
-    # Si un modelo está saturado pasamos enseguida al otro, y recién después de probar
-    # todos esperamos un toque y arrancamos otra vuelta
-    for vuelta in range(config.VUELTAS_DE_REINTENTO):
-        for modelo in config.MODELOS:
-            try:
-                respuesta = await asyncio.wait_for(
-                    _cliente.aio.models.generate_content(model=modelo, contents=contenido, config=ajustes),
-                    timeout=config.ESPERA_MAXIMA_IA,
-                )
-                return (respuesta.text or "").strip()
-            except asyncio.TimeoutError as e:
-                ultimo_error = e
-                print(f"{modelo} no contestó en {config.ESPERA_MAXIMA_IA}s, pruebo con el siguiente...")
-            except Exception as e:
-                ultimo_error = e
-                saturado = any(c in str(e) for c in ("500", "503", "429", "INTERNAL", "UNAVAILABLE", "RESOURCE_EXHAUSTED"))
-                if not saturado:
-                    raise
-                print(f"{modelo} saturado, pruebo con el siguiente...")
 
-        if vuelta < config.VUELTAS_DE_REINTENTO - 1:
-            espera = 3 * (vuelta + 1)
-            print(f"Todos los modelos saturados, otra vuelta en {espera}s...")
-            await asyncio.sleep(espera)
+async def generar_json(contenido: list):
+    return _texto_de_json(await generar([*contenido, "Respondé únicamente con el JSON, sin texto antes ni después."]))
 
-    raise ultimo_error
+
+async def generar(contenido: list) -> str:
+    # contenido: PDFs e imágenes primero, después el texto del prompt (los str se pasan solos a bloque de texto)
+    bloques = [{"type": "text", "text": c} if isinstance(c, str) else c for c in contenido]
+    respuesta = await _cliente.messages.create(
+        model=config.MODELO_IA,
+        max_tokens=16000,
+        output_config={"effort": config.ESFUERZO_IA},
+        messages=[{"role": "user", "content": bloques}],
+    )
+    if respuesta.stop_reason == "refusal":
+        raise RuntimeError("Claude no quiso responder ese pedido")
+    # La respuesta puede traer bloques de "pensamiento" antes del texto: juntamos solo el texto
+    return "".join(b.text for b in respuesta.content if b.type == "text").strip()

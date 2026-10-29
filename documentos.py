@@ -57,7 +57,7 @@ ALIAS_BANCOS = {
 # Marcas que se escriben de varias formas, para comparar la cédula con la cotización
 ALIAS_MARCAS = {"vw": "volkswagen", "gm": "chevrolet", "chevy": "chevrolet", "mb": "mercedes", "benz": "mercedes"}
 
-# Gemini acepta hasta ~20 MB por pedido; si suben muchas fotos pesadas, las mandamos en tandas
+# Claude acepta hasta 32 MB por pedido; si suben muchas fotos pesadas, las mandamos en tandas
 MAX_BYTES_POR_PEDIDO = 15 * 1024 * 1024
 EXTENSIONES_IMAGEN = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp", ".heic": "image/heic"}
 
