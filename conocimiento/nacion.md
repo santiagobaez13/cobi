@@ -51,7 +51,7 @@
 - **Qué cubre:** RC; robo/hurto total; incendio total y destrucción total por accidente bajo **cláusula del 80 %**, conforme a condiciones de póliza. No cubre, en general, reparaciones de daños parciales por choque. **[OPERATIVO / referencia de plan]**
 - **Cláusula del 80 %:** no significa que la aseguradora pague solamente el 80 % de la suma. Es un criterio contractual para determinar si existe destrucción total; revisar texto exacto de póliza y valuación aplicable.
 - **Accidentes personales:** hubo una cotización con **$160.000**; valor **histórico, no fijo**.
-- **Grúa / asistencia:** en una cotización concreta figuraron **hasta 600 km totales**, **6 servicios/año**, **máximo 3/mes**. **[HISTÓRICO]** No trasladar automáticamente a todos los B80. Verificar qué significa el máximo de kilómetros por servicio y si incluye trayecto de ida/regreso.
+- **Grúa / asistencia:** en una cotización concreta figuraron **hasta 600 km totales**, **6 servicios/año**, **máximo 3/mes**. **[HISTÓRICO]** Los 600 km totales son 300 de ida + 300 de vuelta (confirmado por el equipo).
 - **Franquicia / reposición 0 km:** no confirmadas como prestaciones generales.
 - **Países limítrofes:** una cotización describió extensión de robo, incendio y daños totales; verificar condiciones particulares. **[HISTÓRICO]**
 - **Para quién conviene:** quien busca resguardo ante la pérdida total por robo, incendio o choque, sin pagar por protección de daños parciales.
@@ -105,7 +105,7 @@
 - **Número general de Nación:** **0800-888-9908**. La página general de asistencias también lo menciona como contacto 24 h; si el número específico no funciona, usar el general. **[OFICIAL]**
 - **Solicitud online:** el sitio de asistencias enlaza al botón «Pedir grúa», dependiente de prestador externo. **[OFICIAL]**
 - **Frecuencia que anuncia la compañía:** hasta **6 remolques/año**, máximo **3/mes**, en los planes que incluyen el servicio y según póliza. **[OFICIAL]**
-- **Kilómetros:** las páginas oficiales muestran **«hasta 300 km de traslado»** y **«hasta 600 km totales»**; pueden expresar modalidades distintas. Cobi debe **informar la discrepancia** y consultar el anexo de asistencia de la póliza antes de confirmar kilómetros de destino. **[OFICIAL — fuentes discordantes]**
+- **Kilómetros:** **300 km de ida + 300 km de vuelta = 600 km totales.** Las páginas oficiales dicen «hasta 300 km de traslado» y «hasta 600 km totales»: es lo mismo dicho de dos formas. **[OPERATIVO, confirmado por el equipo el 2026-11-01 + OFICIAL]** En los planes que incluyen grúa; si la póliza dice otra cosa, manda la póliza.
 - **Servicios habituales:** remolque, mecánica ligera (cambio de neumático o asistencia con batería) y, cuando corresponda al producto, auto sustituto; condiciones específicas por póliza. **[OFICIAL]**
 - **Peajes:** la página comercial de Nación los presenta como incluidos; confirmar el plan y prestador. **[OFICIAL]**
 - **Tener a mano:** patente, número de póliza/certificado, nombre y DNI, contacto, ubicación exacta, marca/modelo, descripción de avería o accidente y documentación del auto. **[GUÍA PRÁCTICA]**
@@ -176,7 +176,7 @@
 3. **«Destrucción total al 80 %» no es «paga el 80 %».** Es una condición para calificar la pérdida como total.
 4. **No fijar por defecto los adicionales de C80**: aparecieron límites de cristales/granizo de $2.000.000 y $3.000.000, y distinta cantidad de eventos.
 5. **No presentar un límite de accidentes personales como universal**: los $160.000, $240.000 y $320.000 son referencias de cotizaciones anteriores.
-6. **No prometer 600 km de remolque por defecto**: la propia web de Nación muestra hasta 300 km de traslado y 600 km totales; manda el anexo de asistencia.
+6. **Grúa: 300 km de ida + 300 de vuelta (600 totales)**, en los planes que la incluyen (la RC sola no trae). No decir "600 km para ir" ni prometer grúa en un plan que no la tiene.
 7. **No prometer 72 horas hábiles para denunciar**: la Ley 17.418 exige denuncia dentro de los 3 días de conocer el hecho; denunciar cuanto antes.
 8. **CVU para débito no es lo mismo que pagar usando Mercado Pago**. Aclarar la diferencia.
 9. **Solicitud cargada ≠ póliza emitida ≠ cobertura vigente.** Revisar certificado y fechas antes de responder «ya está asegurado».
