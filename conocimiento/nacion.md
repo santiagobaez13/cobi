@@ -70,12 +70,13 @@
 
 - **Qué cubre:** RC; robo/hurto total y parcial; incendio total y parcial; **destrucción total por accidente** con cláusula del 80 %. **No cubre de manera general los daños parciales propios por choque**. **[OPERATIVO / referencia de plan]**
 - **Cristales y cerraduras:** dependen del detalle de la cotización. Se han visto versiones con cobertura por intento de robo y otras con prestaciones de cristales/cerraduras de distinto alcance y cantidad de eventos. **No afirmar un evento fijo para todos los C80**.
-- **Parabrisas, luneta y granizo:** hay cotizaciones de esta cartera con límites de **$2.000.000**, y otra C80 (EcoSport 2008, octubre 2026) mostró **hasta $3.000.000** para parabrisas/luneta y **hasta $3.000.000** para granizo. **[HISTÓRICO]** Los límites varían; tomar siempre los del documento del cliente.
+- **Parabrisas, luneta y granizo:** son **adicionales opcionales** que se le pueden sumar al C80 pagando un extra. Muchas veces Nación lo permite, y sirve como alternativa más barata a pasar al Terceros Completo Premium cuando lo que el cliente quiere es eso. **[OPERATIVO, contado por el equipo el 2026-11-01]** Que lo permitan depende de la compañía en cada caso: no prometerlo sin cotizarlo.
+- **Límites de esos adicionales:** hay cotizaciones de esta cartera con **$2.000.000**, y otra C80 (EcoSport 2008, octubre 2026) mostró **hasta $3.000.000** para parabrisas/luneta y **hasta $3.000.000** para granizo. **[HISTÓRICO]** Los límites varían; tomar siempre los del documento del cliente.
 - **Accidentes personales:** en una cotización figuraron **$240.000**. **[HISTÓRICO]**
 - **Grúa / asistencia:** en una C80 de octubre de 2026 figuraron **hasta 600 km totales** de mecánica ligera/remolque; frecuencia por verificar en la póliza específica. **[HISTÓRICO]**
 - **Franquicia / reposición 0 km:** no afirmar sin documento. Que incluya cristales o granizo no implica que cubra todos los arreglos por choque.
 - **Países limítrofes:** consta extensión en cotizaciones; verificar los riesgos cubiertos por país y el certificado.
-- **Para quién conviene:** quien busca una protección amplia ante robo, incendio, destrucción total y adicionales puntuales, sin cobertura general para daños parciales por choque.
+- **Para quién conviene:** quien busca una protección amplia ante robo, incendio, destrucción total y adicionales puntuales, sin cobertura general para daños parciales por choque. Si el cliente quiere granizo o parabrisas, primero ver si conviene **C80 + esos adicionales** antes que la Premium.
 
 ### Terceros Completo Premium Nación (C Nación / CN)
 
@@ -190,6 +191,9 @@
 
 **«¿C80 me cubre si choco y se me rompe el paragolpes?»**
 > En general, no: C80 protege la destrucción total por accidente, no los daños parciales comunes de tu auto. Para eso tendrías que evaluar Todo Riesgo con franquicia. Revisemos igualmente tu póliza concreta por si tiene algún adicional específico.
+
+**«Quiero que me cubra el granizo, ¿tengo que pasar a la Premium?»**
+> No necesariamente. Muchas veces Nación nos deja sumarle granizo, y también luneta y parabrisas, al Terceros Completo + (C80) pagando un extra, y suele salir más barato que la Premium. Lo cotizamos y te paso las dos opciones para que compares.
 
 **«¿Nación asegura motos?»**
 > Sí, Nación ofrece seguro para motos particulares. En nuestra operatoria solemos trabajar motos con ATM, pero no es una prohibición de Nación.
