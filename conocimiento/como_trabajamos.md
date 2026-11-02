@@ -12,7 +12,7 @@ Lo que Cobi sabe de la oficina. Lo enseña el equipo; si algo cambia, se corrige
 ## Compañías
 
 ### Nación Seguros
-- Asegura autos. **No asegura motos.**
+- Asegura autos y también motos de uso particular, pero **en la oficina las motos se trabajan con ATM** (es una costumbre nuestra, no una exclusión de Nación).
 - Las fotos del vehículo **no hace falta que estén fechadas**.
 - Las fotos se mandan **por mail** a Nación con el N° de solicitud. Asunto: "Solicitud de Emisión N° …".
 - Después de mandar las fotos, la póliza queda **pendiente de emisión** (puede tardar hasta 15 días).
