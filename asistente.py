@@ -21,7 +21,7 @@ LARGO_POR_MENSAJE = 800
 PEDIDOS = re.compile(
     r"\b(resumen|resumi\w*|como (viene|va|anda|quedo)|en que (quedo|esta)|que paso|cubre|incluye|tiene|armame|arma|armar|"
     r"respuesta|responde\w*|contesta\w*|explica\w*|que es|cuant[oa]s?|cuando|por que|porque|sirve|puede|conviene|"
-    r"diferencia|grua|granizo|franquicia|siniestro|choc\w*|ayuda\w*)\b"
+    r"diferencia|grua|granizo|franquicia|siniestro|choc\w*|ayuda\w*|robo|robaron|robada|robado|hurto|accidente|incendi\w*)\b"
 )
 # Datos que no hace falta mandarle a la IA
 DATOS_QUE_NO_VAN = {"cbu", "tarjeta_numero", "tarjeta_ultimos", "tarjeta_vencimiento", "cuil"}
