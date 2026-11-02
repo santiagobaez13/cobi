@@ -13,6 +13,7 @@ from util import normalizar
 # Sabe lo que hay en conocimiento/ (la biblioteca que escribe el equipo) y, si se habla de un cliente,
 # lo que hay en la base y en el hilo de su solicitud
 CARPETA_CONOCIMIENTO = Path(__file__).parent / "conocimiento"
+CARPETA_PLANTILLAS = Path(__file__).parent / "plantillas"
 MENSAJES_DEL_HILO = 40
 LARGO_POR_MENSAJE = 800
 
@@ -40,8 +41,16 @@ def biblioteca() -> str:
     return "\n\n".join(partes) or "(Todavía no hay nada en la biblioteca.)"
 
 
+def predeterminados() -> str:
+    # Los mismos textos de /plantilla, así cuando le piden uno ("armale el de denuncia de choque") parte del de la oficina
+    return "\n\n".join(
+        f"## Predeterminado: {archivo.stem}\n\n{archivo.read_text(encoding='utf-8').strip()}"
+        for archivo in sorted(CARPETA_PLANTILLAS.glob("*.md"))
+    )
+
+
 def instrucciones() -> str:
-    return f"{ia.leer_prompt('asistente')}\n\n# BIBLIOTECA\n\n{biblioteca()}"
+    return f"{ia.leer_prompt('asistente')}\n\n# BIBLIOTECA\n\n{biblioteca()}\n\n# PREDETERMINADOS DE LA OFICINA\n\n{predeterminados()}"
 
 
 async def contexto_de_la_solicitud(bot: discord.Client, alta) -> str:
