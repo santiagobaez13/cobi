@@ -31,8 +31,12 @@ def es_pedido(texto: str) -> bool:
 
 
 def biblioteca() -> str:
-    # Se lee cada vez, así si suman o corrigen un .md no hace falta reiniciar a Cobi
-    partes = [f"## Archivo: {archivo.name}\n\n{archivo.read_text(encoding='utf-8').strip()}" for archivo in sorted(CARPETA_CONOCIMIENTO.glob("*.md"))]
+    # Se lee cada vez, así si suman o corrigen un .md no hace falta reiniciar a Cobi.
+    # Los comentarios <!-- ... --> son notas para el equipo (dudas, "completar esto"): Cobi no los lee
+    partes = [
+        f"## Archivo: {archivo.name}\n\n{re.sub(r'<!--.*?-->', '', archivo.read_text(encoding='utf-8'), flags=re.S).strip()}"
+        for archivo in sorted(CARPETA_CONOCIMIENTO.glob("*.md"))
+    ]
     return "\n\n".join(partes) or "(Todavía no hay nada en la biblioteca.)"
 
 
