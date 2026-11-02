@@ -8,9 +8,13 @@
 1. El cliente avisa por WhatsApp ("choqué", "me robaron").
 2. **Primero se mira la póliza:** qué cobertura tiene y si cubre lo que pasó. Igual hay que denunciar aunque no cubra los daños propios: con solo Responsabilidad Civil, si hubo un tercero, la compañía es la que le responde a ese tercero. `[OPERATIVO]`
 3. Se le manda el predeterminado de denuncia (el general, sumándole lo del tipo de siniestro, ver abajo).
-4. Con los datos, se carga la denuncia en la compañía y se guarda el **número de siniestro**. `[OPERATIVO]`
+4. Con los datos, **la denuncia la cargan Santi o Eze** en la compañía (no el cliente) y se guarda el **número de siniestro**. `[OPERATIVO]`
 
-<!-- PENDIENTE para el equipo: ¿la denuncia la carga siempre la oficina (portal de productores) o a veces el cliente desde Mis Seguros / la app? -->
+## Cuando al cliente lo chocan y la culpa es del otro
+
+- Igual **se denuncia en la compañía de nuestro asegurado**: cargamos el daño de nuestro asegurado y listo. `[OPERATIVO]`
+- **No somos un estudio jurídico:** el reclamo contra el tercero o su aseguradora lo hace el asegurado **por sus propios medios** (con quien él elija). Nosotros no lo gestionamos ni le prometemos resultados. `[OPERATIVO]`
+- Si pregunta cómo reclamarle al otro, decirle eso con buena onda: nosotros dejamos hecha la denuncia en su compañía y el reclamo al tercero lo lleva él.
 
 ## Reglas
 
