@@ -24,6 +24,9 @@ CANAL_CHAT = "general"
 # Alerta de certificados: si un alta sigue pendiente de emisión a los X días, Cobi avisa en este canal (el general, así todo lo que dice Cobi queda junto).
 # El certificado de cobertura vale VIGENCIA_CERTIFICADO días
 CANAL_ALERTAS = CANAL_CHAT
+
+# Donde se sube el informe de débitos rechazados de la compañía: Cobi arma el mensaje para cada cliente
+CANAL_COBRANZAS = "cobranzas"
 DIAS_ALERTA_CERTIFICADO = 10
 VIGENCIA_CERTIFICADO = 15
 

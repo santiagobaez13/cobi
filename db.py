@@ -101,6 +101,21 @@ def crear_tablas():
                 hecha_en TEXT
             )
         """)
+        # Cada informe de débitos rechazados que se sube a #cobranzas. rechazos: la lista leída del PDF (JSON);
+        # avisados: a cuáles ya se les armó el mensaje (JSON con los números de renglón)
+        con.execute("""
+            CREATE TABLE IF NOT EXISTS cobranzas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                compania TEXT,
+                fecha_informe TEXT,
+                rechazos TEXT NOT NULL,
+                avisados TEXT NOT NULL DEFAULT '[]',
+                canal_id INTEGER NOT NULL,
+                mensaje_id INTEGER,
+                terminada TEXT,
+                creada TEXT NOT NULL
+            )
+        """)
 
 
 def _agregar_columnas(con: sqlite3.Connection, tabla: str, columnas: dict[str, str]):
@@ -243,6 +258,34 @@ def altas_para_la_hoja() -> list[sqlite3.Row]:
     # Las emitidas que quedaron sin llegar a la hoja de Google (porque Google falló en el momento)
     with closing(_conectar()) as con:
         return con.execute("SELECT * FROM altas WHERE estado = 'emitida' AND json_extract(hoja, '$.estado') = 'pendiente'").fetchall()
+
+
+def altas_por_dni(dni: str) -> list[sqlite3.Row]:
+    # Para cruzar el informe de rechazos con nuestras solicitudes (los DNI viejos pueden tener puntos)
+    with closing(_conectar()) as con:
+        return con.execute(
+            "SELECT * FROM altas WHERE replace(json_extract(datos, '$.dni'), '.', '') = ? ORDER BY id DESC", (dni,)
+        ).fetchall()
+
+
+def nueva_cobranza(compania: str, fecha_informe: str, rechazos: list[dict], canal_id: int, creada: str) -> int:
+    with closing(_conectar()) as con, con:
+        return con.execute(
+            "INSERT INTO cobranzas (compania, fecha_informe, rechazos, canal_id, creada) VALUES (?, ?, ?, ?, ?)",
+            (compania, fecha_informe, json.dumps(rechazos, ensure_ascii=False), canal_id, creada),
+        ).lastrowid
+
+
+def obtener_cobranza(cobranza_id: int) -> sqlite3.Row | None:
+    with closing(_conectar()) as con:
+        return con.execute("SELECT * FROM cobranzas WHERE id = ?", (cobranza_id,)).fetchone()
+
+
+def actualizar_cobranza(cobranza_id: int, **campos):
+    # Los campos son siempre nuestros (mensaje_id, avisados, terminada), nunca algo que escribió alguien
+    columnas = ", ".join(f"{c} = ?" for c in campos)
+    with closing(_conectar()) as con, con:
+        con.execute(f"UPDATE cobranzas SET {columnas} WHERE id = ?", (*campos.values(), cobranza_id))
 
 
 def todas_las_altas() -> list[sqlite3.Row]:

@@ -1,0 +1,31 @@
+Este PDF debería ser un informe de débitos rechazados que una compañía de seguros le manda al productor: una tabla con un renglón por cliente al que no se le pudo debitar la cuota.
+
+Devolvé un JSON así:
+{
+  "es_informe": true,
+  "compania": "Nación Seguros",
+  "fecha_informe": "31/10/2026",
+  "rechazos": [
+    {
+      "nombre_completo": "Asencio Maximiliano",
+      "nombre": "Maximiliano",
+      "dni": "35561583",
+      "poliza": "2601840",
+      "cuota": "1",
+      "importe": "107.122,13",
+      "fecha_debito": "30/10/2026",
+      "motivo": "RECHAZADO"
+    }
+  ]
+}
+
+Reglas:
+- Si el PDF no es un informe de débitos o cobros rechazados, devolvé {"es_informe": false} y nada más.
+- compania: el nombre comercial de la compañía (por ejemplo "Nación Seguros", "ATM Seguros"), sacado del logo o del encabezado.
+- nombre_completo: como figura, pero en formato título (primera letra en mayúscula).
+- nombre: solo el nombre de pila, para saludarlo ("Hola Maximiliano"). Ojo: a veces viene "APELLIDO NOMBRE" ("ASENCIO MAXIMILIANO" → "Maximiliano") y a veces "NOMBRE APELLIDO" ("FERNANDO GABRIEL SOTO ALFO" → "Fernando"). Usá lo que sepas de nombres y apellidos argentinos para darte cuenta. Si tiene dos nombres, solo el primero.
+- dni y poliza: solo los números, sin puntos.
+- importe: como figura, en formato argentino (punto de miles y coma de decimales), sin el signo $.
+- motivo: el motivo del rechazo tal cual figura.
+- No incluyas números de cuenta, CBU ni tarjeta.
+- Un renglón del informe = un elemento de "rechazos", en el mismo orden. No inventes ni saltees ninguno.
