@@ -9,7 +9,7 @@ import config
 import db
 import hoja
 import ia
-from util import ahora, buscar_etiqueta, mismo_nombre, normalizar, para_la_web
+from util import ahora, buscar_etiqueta, clave_compania, mismo_nombre, normalizar, para_la_web
 
 FORMATO_FECHA = "%Y-%m-%d %H:%M:%S"
 
@@ -148,30 +148,66 @@ class ModalPolizaNueva(discord.ui.Modal, title="Cargar póliza a mano"):
         anio = m.group() if (m := re.search(r"\b(19|20)\d{2}\b", vehiculo)) else ""
         if anio:
             vehiculo = " ".join(vehiculo.replace(anio, " ").split()).strip(" -–,")
-        datos = {}
-        if patente := re.sub(r"[^A-Za-z0-9]", "", self.patente.value).upper():
-            datos["patente"] = patente
-        if dni := self.dni.value.strip():
-            datos["dni"] = dni
-        # Va a la misma tabla que las altas, ya emitida y sin cotización ni hilo de solicitud (cotizacion_id 0)
-        alta_id = db.nueva_alta(0, self.asegurado.value.strip().title(), self.compania, vehiculo or None, anio, self.tipo, None, None, datos=datos)
-        db.actualizar_alta(alta_id, estado="emitida", emitida_en=ahora().strftime(FORMATO_FECHA), n_poliza=self.n_poliza.value.strip() or None)
+        leido = {
+            "asegurado": self.asegurado.value, "dni": self.dni.value, "patente": self.patente.value,
+            "vehiculo": vehiculo, "anio": anio, "tipo": self.tipo, "n_poliza": self.n_poliza.value,
+        }
+        texto = await registrar_poliza(interaction.client, leido, self.compania, self.productor)
+        await interaction.followup.send(texto + "\n📎 Si tenés el PDF de la póliza, subilo en la ficha y completo el N° y la vigencia.", ephemeral=True)
 
-        await crear_ficha(interaction.client, alta_id)
-        renglones = []
-        alta = db.obtener_alta(alta_id)
-        if alta["poliza_hilo_id"]:
-            renglones.append(f"✅ Cargada. Su ficha 👉 <#{alta['poliza_hilo_id']}>")
-        else:
-            renglones.append(f"✅ Cargada en la base, pero no pude abrir la ficha (¿existe el foro #{config.FORO_POLIZAS}?).")
-        if hoja.activa():
-            hoja.anotar_para_cargar(alta_id, self.productor)
-            renglones.append(
-                f"📊 En la hoja a nombre de **{self.productor}**." if await hoja.cargar(alta_id)
-                else "⚠️ Google no respondió: la mando a la hoja sola en la próxima hora."
-            )
-        renglones.append("📎 Si tenés el PDF de la póliza, subilo en la ficha y completo el N° y la vigencia.")
-        await interaction.followup.send("\n".join(renglones), ephemeral=True)
+
+def companias_conocidas() -> list[str]:
+    # Las de config más las que ya aparecieron en pólizas cargadas: así una compañía nueva queda "registrada" sola
+    vistas = [c for c in db.companias_en_la_base() if c and c != "?"]
+    return list(dict.fromkeys(config.COMPANIAS + sorted(vistas)))
+
+
+def prompt_poliza() -> str:
+    return ia.leer_prompt("poliza", companias=", ".join(companias_conocidas()))
+
+
+async def registrar_poliza(bot, leido: dict, compania: str, productor: str, pdf: discord.Attachment | None = None) -> str:
+    # Una póliza emitida por fuera de Cobi (con /poliza): va a la misma tabla que las altas, ya emitida y sin
+    # cotización ni hilo de solicitud (cotizacion_id 0). Le abre su ficha y la manda a la hoja. Devuelve qué pasó
+    limpio = lambda clave: " ".join(str(leido.get(clave) or "").split())
+    datos = {}
+    if patente := re.sub(r"[^A-Za-z0-9]", "", limpio("patente")).upper():
+        datos["patente"] = patente
+    if dni := limpio("dni"):
+        datos["dni"] = dni
+    tipo = "Moto" if normalizar(limpio("tipo")) == "moto" else "Auto"
+    alta_id = db.nueva_alta(
+        0, limpio("asegurado").title() or "?", compania, limpio("vehiculo") or None, limpio("anio"), tipo, limpio("cobertura") or None, None, datos=datos,
+    )
+    desde, hasta = limpio("vigencia_desde"), limpio("vigencia_hasta")
+    db.actualizar_alta(
+        alta_id, estado="emitida", emitida_en=ahora().strftime(FORMATO_FECHA),
+        n_poliza=limpio("n_poliza") or None, vigencia=f"{desde} al {hasta}" if desde and hasta else None,
+    )
+
+    await crear_ficha(bot, alta_id)
+    alta = db.obtener_alta(alta_id)
+    renglones = []
+    if alta["poliza_hilo_id"]:
+        renglones.append(f"✅ Cargada la póliza de **{hoja.nombre_del_asegurado(alta, datos)}** ({compania}). Su ficha 👉 <#{alta['poliza_hilo_id']}>")
+        if pdf is not None:
+            # El PDF queda guardado en la ficha, así está a mano cuando el cliente la pide
+            try:
+                hilo = bot.get_channel(alta["poliza_hilo_id"]) or await bot.fetch_channel(alta["poliza_hilo_id"])
+                await hilo.send("📄 La póliza", file=await pdf.to_file())
+            except discord.HTTPException as e:
+                print(f"No pude dejar el PDF en la ficha del alta {alta_id}: {e}")
+    else:
+        renglones.append(f"✅ Cargada en la base, pero no pude abrir la ficha (¿existe el foro #{config.FORO_POLIZAS}?).")
+    if hoja.activa():
+        hoja.anotar_para_cargar(alta_id, productor)
+        renglones.append(
+            f"📊 En la hoja a nombre de **{productor}**." if await hoja.cargar(alta_id)
+            else "⚠️ Google no respondió: la mando a la hoja sola en la próxima hora."
+        )
+    if clave_compania(compania) not in {clave_compania(c) for c in config.COMPANIAS}:
+        renglones.append(f"🆕 Es la primera de **{compania}**: si querés que tenga etiqueta en #{config.FORO_POLIZAS}, creala con ese nombre.")
+    return "\n".join(renglones)
 
 
 def es_pdf(adjunto: discord.Attachment) -> bool:
@@ -190,7 +226,7 @@ async def leer_pdf_de_la_ficha(message: discord.Message, alta) -> list[str]:
     avisos, cambios = [], {}
     datos = db.datos_alta(alta)
     for adjunto in (a for a in message.attachments if es_pdf(a)):
-        leido = await ia.generar_json([ia.pdf(await adjunto.read()), ia.leer_prompt("poliza")], tarea="poliza")
+        leido = await ia.generar_json([ia.pdf(await adjunto.read()), prompt_poliza()], tarea="poliza")
         if leido.get("documento") == "otro":
             avisos.append(f"🤔 **{adjunto.filename}** no parece una póliza ni un certificado, no saqué nada de ahí.")
             continue
@@ -217,19 +253,53 @@ async def leer_pdf_de_la_ficha(message: discord.Message, alta) -> list[str]:
 
 
 class Polizas(commands.Cog):
-    @app_commands.command(name="poliza", description="Cargar a mano una póliza emitida por fuera de Cobi (ficha en #polizas + hoja de emitidas)")
-    @app_commands.describe(compania="La compañía", productor="Quién la emitió (si no lo elegís, vos)", tipo="Auto o moto")
-    @app_commands.choices(
-        compania=[app_commands.Choice(name=c, value=c) for c in config.COMPANIAS],
-        productor=[app_commands.Choice(name=n[0], value=n[0]) for n in config.EQUIPO.values()],
-        tipo=[app_commands.Choice(name=t, value=t) for t in ("Auto", "Moto")],
+    @app_commands.command(name="poliza", description="Cargar una póliza emitida por fuera de Cobi: subí el PDF y armo la ficha y la fila de la hoja")
+    @app_commands.describe(
+        pdf="El PDF de la póliza: saco todos los datos de ahí",
+        productor="Quién la emitió (si no lo elegís, vos)",
+        compania="Solo para cargarla a mano, sin PDF (podés escribir una nueva)",
     )
-    async def poliza(self, interaction: discord.Interaction, compania: str, productor: str | None = None, tipo: str = "Auto"):
+    @app_commands.choices(productor=[app_commands.Choice(name=n[0], value=n[0]) for n in config.EQUIPO.values()])
+    async def poliza(self, interaction: discord.Interaction, pdf: discord.Attachment | None = None,
+                     productor: str | None = None, compania: str | None = None):
         if interaction.user.id not in config.EQUIPO:
             await interaction.response.send_message("Esto es solo para los del equipo 🙏", ephemeral=True)
             return
         productor = productor or config.EQUIPO[interaction.user.id][0]
-        await interaction.response.send_modal(ModalPolizaNueva(compania, tipo, productor))
+
+        # Sin PDF: la ventanita para cargarla a mano (ahí sí hace falta saber la compañía)
+        if pdf is None:
+            if not compania:
+                await interaction.response.send_message("Adjuntá el PDF de la póliza en **pdf** 📎 (o elegí la **compania** para cargarla a mano).", ephemeral=True)
+                return
+            await interaction.response.send_modal(ModalPolizaNueva(compania.strip(), "Auto", productor))
+            return
+        if not es_pdf(pdf):
+            await interaction.response.send_message("Eso no es un PDF 🤔", ephemeral=True)
+            return
+
+        await interaction.response.defer(ephemeral=True, thinking=True)
+        try:
+            leido = await ia.generar_json([ia.pdf(await pdf.read()), prompt_poliza()], tarea="poliza")
+        except Exception as e:
+            print(f"Error leyendo la póliza {pdf.filename} de /poliza: {e}")
+            await interaction.followup.send("⚠️ No pude leer el PDF (la IA no respondió). Probá de nuevo en un rato.", ephemeral=True)
+            return
+        if not isinstance(leido, dict) or leido.get("documento") not in ("poliza", "certificado") or not leido.get("asegurado"):
+            await interaction.followup.send(f"🤔 **{pdf.filename}** no parece una póliza: no cargué nada.", ephemeral=True)
+            return
+        # Si ya está cargada (por N° de póliza), no la duplicamos
+        if leido.get("n_poliza") and (ya := db.alta_por_n_poliza(str(leido["n_poliza"]).strip())):
+            donde = f"<#{ya['poliza_hilo_id']}>" if ya["poliza_hilo_id"] else "la base"
+            await interaction.followup.send(f"👀 La póliza N° {leido['n_poliza']} ya estaba cargada 👉 {donde}", ephemeral=True)
+            return
+        texto = await registrar_poliza(interaction.client, leido, leido.get("compania") or compania or "?", productor, pdf)
+        await interaction.followup.send(texto, ephemeral=True)
+
+    @poliza.autocomplete("compania")
+    async def compania_autocompletar(self, interaction: discord.Interaction, actual: str):
+        # Sugiere las conocidas, pero se puede escribir cualquiera (si es nueva, queda registrada al cargarla)
+        return [app_commands.Choice(name=c, value=c) for c in companias_conocidas() if normalizar(actual) in normalizar(c)][:25]
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):

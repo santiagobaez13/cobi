@@ -260,6 +260,18 @@ def altas_para_la_hoja() -> list[sqlite3.Row]:
         return con.execute("SELECT * FROM altas WHERE estado = 'emitida' AND json_extract(hoja, '$.estado') = 'pendiente'").fetchall()
 
 
+def alta_por_n_poliza(n_poliza: str) -> sqlite3.Row | None:
+    # Para no cargar dos veces la misma póliza con /poliza
+    with closing(_conectar()) as con:
+        return con.execute("SELECT * FROM altas WHERE n_poliza = ?", (n_poliza,)).fetchone()
+
+
+def companias_en_la_base() -> list[str]:
+    # Las compañías que ya aparecieron (así /poliza sugiere también las nuevas que se fueron cargando)
+    with closing(_conectar()) as con:
+        return [f["compania"] for f in con.execute("SELECT DISTINCT compania FROM altas WHERE compania IS NOT NULL")]
+
+
 def altas_por_dni(dni: str) -> list[sqlite3.Row]:
     # Para cruzar el informe de rechazos con nuestras solicitudes (los DNI viejos pueden tener puntos)
     with closing(_conectar()) as con:
