@@ -1,33 +1,45 @@
-Hola, ¿cómo estás?
+Para avanzar con la denuncia, necesito que me envíes la siguiente información y documentación.
 
-Para poder gestionar la denuncia del siniestro ante la compañía aseguradora, necesitamos que nos compartas la siguiente información:
+📍 *1. DATOS DEL SINIESTRO*
+- Fecha y hora del accidente:
+- Dirección, altura y entre calles:
+- Localidad y código postal:
+- ¿Cómo ocurrió el accidente? (Breve descripción):
+- ¿Qué daños sufrió el vehículo?
 
-📋 *Datos del siniestro*
-- Fecha y hora en que ocurrió.
-- Lugar exacto (calle, altura y localidad).
-- Descripción detallada de cómo sucedió el hecho.
+👤 *2. DATOS DEL CONDUCTOR*
+- Nombre y apellido:
+- DNI:
+- Teléfono:
+- Correo electrónico:
+- ¿Es titular del vehículo?
+- ¿Tenía registro de conducir vigente?
+- Número, categoría y vencimiento del registro:
+
+🚨 *3. INFORMACIÓN ADICIONAL*
+- ¿Intervino la policía?
+- ¿Intervino una ambulancia?
+- ¿Se realizó un control de alcoholemia? (Indicar resultado):
 - ¿Hubo personas lesionadas?
-- ¿Intervino la policía, ambulancia o algún otro servicio?
+- ¿Hubo testigos? (Nombre y teléfono, si corresponde):
 
-🚗 *Datos del asegurado y conductor*
-- Nombre completo y DNI del asegurado.
-- Nombre completo y DNI de quien conducía.
-- Patente del vehículo.
-- Teléfono y correo electrónico de contacto.
+🚘 *4. DATOS DEL TERCERO (si corresponde)*
+- Nombre y apellido:
+- DNI:
+- Teléfono:
+- Patente:
+- Marca y modelo:
+- Compañía de seguros:
+- Número de póliza (si lo tiene):
+- Daños que sufrió su vehículo:
 
-📸 *Documentación*
-- Foto de la cédula del vehículo (frente y dorso).
-- Foto del registro de conducir de quien manejaba (frente y dorso).
-- Fotografías de los daños ocasionados y del vehículo completo.
+📸 *5. FOTOS Y DOCUMENTACIÓN*
+- DNI del conductor (frente y dorso).
+- Registro de conducir (frente y dorso).
+- Cédula del vehículo (frente y dorso).
+- Fotos generales del vehículo con patente visible.
+- Fotos de los daños desde distintos ángulos.
+- Fotos del lugar del accidente (si tiene).
+- Documentación del tercero: registro, cédula y seguro (si corresponde).
 
-🚘 *Si hubo terceros involucrados*
-- Nombre completo y teléfono del otro conductor.
-- Patente, marca y modelo del otro vehículo.
-- Compañía aseguradora y número de póliza, si lo tiene.
-- Fotografías de los daños del otro vehículo, si es posible.
-
-Si hubo intervención policial, por favor adjuntá también la constancia correspondiente, si la tenés.
-
-⏰ Es importante hacer la denuncia cuanto antes: la ley da *3 días* desde que ocurrió el hecho. Si todavía te falta algo, mandanos lo que tengas y lo vamos completando.
-
-Una vez que nos envíes la información, vamos a revisar la documentación y avanzar con la denuncia ante la compañía.
+Si te falta algún dato o documento, avisame para que podamos avanzar con la información disponible.

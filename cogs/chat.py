@@ -10,7 +10,7 @@ import codigos_postales
 import consumo
 import config
 import db
-from cogs import tareas
+from cogs import plantillas, tareas
 from util import ahora, mismo_nombre, normalizar
 
 FORMATO_FECHA = "%Y-%m-%d %H:%M:%S"
@@ -222,6 +222,9 @@ class Chat(commands.Cog):
                 return
             for pedazo in asistente.en_pedazos(respuesta or "🤔"):
                 await message.reply(pedazo, mention_author=False)
+            # Si armó el pedido de denuncia de siniestro, va también la imagen que usa la oficina (la de /plantilla)
+            if "DATOS DEL SINIESTRO" in (respuesta or "").upper() and (imagen := plantillas.imagen_plantilla("denuncia_siniestro")):
+                await message.channel.send(file=imagen)
             return
 
         # Mostramos las que mejor coinciden (si hay empate, todas, hasta 5)
