@@ -69,7 +69,10 @@ async def contexto_de_la_solicitud(bot: discord.Client, alta) -> str:
         f"- Datos cargados: {datos}",
     ]
 
-    # Lo que se habló en el hilo: ahí están la cobertura elegida completa, los avisos y lo que fueron pasando
+    # Lo que se habló en el hilo: ahí están la cobertura elegida completa, los avisos y lo que fueron pasando.
+    # Las pólizas cargadas a mano con /poliza no tienen hilo de solicitud
+    if not alta["hilo_id"]:
+        return "\n".join(renglones + ["(Póliza cargada a mano con /poliza: no tiene hilo de solicitud.)"])
     try:
         hilo = bot.get_channel(alta["hilo_id"]) or await bot.fetch_channel(alta["hilo_id"])
         mensajes = [m async for m in hilo.history(limit=MENSAJES_DEL_HILO)]

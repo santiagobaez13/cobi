@@ -13,7 +13,7 @@ HOJA_EMITIDAS_CLAVE = os.getenv("HOJA_EMITIDAS_CLAVE")
 EMPRESA = "SER Seguros"
 
 # Las compañías con las que laburamos. Si se suma una, se agrega acá
-COMPANIAS = ["Nación Seguros", "ATM Seguros"]
+COMPANIAS = ["Nación Seguros", "ATM Seguros", "Mercantil Andina"]
 
 # Canal donde Cobi deja una tarjeta por cada alta pendiente de emisión (se borra cuando se emite)
 CANAL_PENDIENTES = "pendientes-emision"

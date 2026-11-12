@@ -89,7 +89,7 @@ def lista_de_altas(texto: str) -> str:
         return "No hay solicitudes así 👍"
     renglones = [
         f"`{a['creada'][8:10]}/{a['creada'][5:7]}` {ICONOS_ESTADO.get(a['estado'], '📋')} **{a['cliente']}** · "
-        f"{a['compania'] or '?'} · {a['vehiculo'] or '?'} 👉 <#{a['hilo_id']}>"
+        f"{a['compania'] or '?'} · {a['vehiculo'] or '?'} 👉 <#{a['hilo_id'] or a['poliza_hilo_id']}>"
         for a in altas[:MAX_LISTA]
     ]
     if len(altas) > MAX_LISTA:
@@ -112,7 +112,7 @@ def describir(alta) -> str:
         estado = "📋 En curso"
     return (
         f"**{alta['cliente']}** · {alta['compania'] or '?'} · {alta['vehiculo'] or '?'} {alta['anio'] or ''}{patente}\n"
-        f"{estado} · N° de solicitud {alta['n_solicitud'] or '—'} 👉 <#{alta['hilo_id']}>"
+        + (f"{estado} · N° de solicitud {alta['n_solicitud'] or '—'} 👉 <#{alta['hilo_id']}>" if alta["hilo_id"] else f"{estado} · cargada a mano con /poliza")
     )
 
 
