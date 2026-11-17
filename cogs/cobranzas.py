@@ -18,7 +18,7 @@ FORMATO_FECHA = "%Y-%m-%d %H:%M:%S"
 POR_MENU = 25    # lo máximo que deja Discord en un desplegable
 MAX_MENUS = 5    # y no entran más de 5 desplegables por mensaje (125 clientes, sobra)
 LARGO_LISTA = 1900
-# Si el motivo dice solo "rechazado" no aporta nada; si dice otra cosa ("cuenta cerrada") se lo mostramos al productor
+# Si el motivo dice solo "rechazado" no aporta nada; si dice otra cosa ("cuenta cerrada") se lo mostramos al equipo
 MOTIVOS_SIN_INFO = {"", "rechazado", "rechazada"}
 
 
@@ -50,7 +50,7 @@ def plata(numero: float) -> str:
 
 def agrupar(renglones: list[dict]) -> list[dict]:
     # A veces un mismo cliente figura más de una vez (dos cobros de la misma póliza, a veces de la misma cuota).
-    # Un cliente = un mensaje: juntamos por póliza, sumamos el importe y guardamos el detalle para avisarle al productor
+    # Un cliente = un mensaje: juntamos por póliza, sumamos el importe y guardamos el detalle para avisarle al equipo
     por_poliza: dict[str, dict] = {}
     for r in renglones:
         clave = str(r.get("poliza") or r.get("dni") or r.get("nombre_completo"))
@@ -154,7 +154,7 @@ class MenuRechazos(discord.ui.DynamicItem[discord.ui.Select], template=r"cobranz
         rechazo = rechazos_de(cobranza)[indice]
         alta = solicitud_del_cliente(rechazo)
 
-        # Lo que es para el productor va afuera del bloque; adentro, solo lo que se le manda al cliente
+        # Lo que es para el equipo va afuera del bloque; adentro, solo lo que se le manda al cliente
         notas = []
         detalle = rechazo.get("detalle") or []
         if len(detalle) > 1:

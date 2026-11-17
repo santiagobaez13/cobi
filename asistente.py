@@ -66,6 +66,7 @@ async def contexto_de_la_solicitud(bot: discord.Client, alta) -> str:
         f"- Vehículo: {alta['vehiculo']} {alta['anio']} · Tipo: {alta['tipo']} · GNC: {'sí' if alta['gnc'] else 'no'}",
         f"- Estado: {estado} · Creada: {alta['creada']}",
         f"- N° de solicitud: {alta['n_solicitud'] or '—'} · N° de póliza: {alta['n_poliza'] or '—'} · Vigencia: {alta['vigencia'] or '—'}",
+        f"- Productor (el que trajo al cliente y cobra comisión): {alta['productor'] or 'no tiene'}",
         f"- Datos cargados: {datos}",
     ]
 

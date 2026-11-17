@@ -64,6 +64,7 @@ def crear_tablas():
             "poliza_hilo_id": "INTEGER",
             "n_poliza": "TEXT",
             "vigencia": "TEXT",
+            "productor": "TEXT",
         })
         # Lo que se borra con /limpiar queda copiado acá (en JSON), por si nos equivocamos
         con.execute("""
@@ -192,7 +193,7 @@ def alta_por_ficha(hilo_id: int) -> sqlite3.Row | None:
 
 
 # Solo dejamos tocar estas columnas, así nadie mete cualquier cosa en el UPDATE
-CAMPOS_ALTA = {"etapa", "estado", "n_solicitud", "pendiente_desde", "emitida_en", "alerta_enviada", "omitidos", "panel_id", "tarjeta_pendiente_id", "hoja", "rechazada_en", "motivo_rechazo", "poliza_hilo_id", "n_poliza", "vigencia"}
+CAMPOS_ALTA = {"etapa", "estado", "n_solicitud", "pendiente_desde", "emitida_en", "alerta_enviada", "omitidos", "panel_id", "tarjeta_pendiente_id", "hoja", "rechazada_en", "motivo_rechazo", "poliza_hilo_id", "n_poliza", "vigencia", "productor"}
 
 
 def actualizar_alta(alta_id: int, **campos):
@@ -264,6 +265,12 @@ def alta_por_n_poliza(n_poliza: str) -> sqlite3.Row | None:
     # Para no cargar dos veces la misma póliza con /poliza
     with closing(_conectar()) as con:
         return con.execute("SELECT * FROM altas WHERE n_poliza = ?", (n_poliza,)).fetchone()
+
+
+def productores_en_la_base() -> list[str]:
+    # Los productores (los que traen clientes y cobran comisión) que ya se usaron, para sugerirlos en el desplegable
+    with closing(_conectar()) as con:
+        return [f["productor"] for f in con.execute("SELECT DISTINCT productor FROM altas WHERE productor IS NOT NULL")]
 
 
 def companias_en_la_base() -> list[str]:

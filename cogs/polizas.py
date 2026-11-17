@@ -36,6 +36,7 @@ def texto_ficha(alta) -> str:
         f"🔢 N° de solicitud: {alta['n_solicitud'] or '—'}\n"
         f"📄 N° de póliza: {alta['n_poliza'] or '—'}\n"
         f"📅 Emitida el {emitida} · Vigencia: {alta['vigencia'] or '—'}\n"
+        + (f"🤝 Productor: **{alta['productor']}**\n" if alta["productor"] else "")
         + (f"📂 La solicitud, con toda la historia 👉 <#{alta['hilo_id']}>" if alta["hilo_id"] else "✍️ Cargada a mano con /poliza (no pasó por Cobi)")
     )
 
@@ -128,9 +129,9 @@ class BotonPoliza(discord.ui.DynamicItem[discord.ui.Button], template=r"poliza:c
 
 class ModalPolizaNueva(discord.ui.Modal, title="Cargar póliza a mano"):
     # Para las pólizas que se emiten por fuera de Cobi: quedan en la base, con su ficha en #polizas y su fila en la hoja
-    def __init__(self, compania: str, tipo: str, productor: str):
+    def __init__(self, compania: str, tipo: str, dio_de_alta: str, productor: str | None):
         super().__init__()
-        self.compania, self.tipo, self.productor = compania, tipo, productor
+        self.compania, self.tipo, self.dio_de_alta, self.productor = compania, tipo, dio_de_alta, productor
         self.asegurado = discord.ui.TextInput(placeholder="Apellido Nombre, como en el DNI", max_length=80)
         self.add_item(discord.ui.Label(text="Asegurado", component=self.asegurado))
         self.dni = discord.ui.TextInput(max_length=15, required=False)
@@ -152,7 +153,7 @@ class ModalPolizaNueva(discord.ui.Modal, title="Cargar póliza a mano"):
             "asegurado": self.asegurado.value, "dni": self.dni.value, "patente": self.patente.value,
             "vehiculo": vehiculo, "anio": anio, "tipo": self.tipo, "n_poliza": self.n_poliza.value,
         }
-        texto = await registrar_poliza(interaction.client, leido, self.compania, self.productor)
+        texto = await registrar_poliza(interaction.client, leido, self.compania, self.dio_de_alta, self.productor)
         await interaction.followup.send(texto + "\n📎 Si tenés el PDF de la póliza, subilo en la ficha y completo el N° y la vigencia.", ephemeral=True)
 
 
@@ -166,7 +167,8 @@ def prompt_poliza() -> str:
     return ia.leer_prompt("poliza", companias=", ".join(companias_conocidas()))
 
 
-async def registrar_poliza(bot, leido: dict, compania: str, productor: str, pdf: discord.Attachment | None = None) -> str:
+async def registrar_poliza(bot, leido: dict, compania: str, dio_de_alta: str, productor: str | None = None,
+                           pdf: discord.Attachment | None = None) -> str:
     # Una póliza emitida por fuera de Cobi (con /poliza): va a la misma tabla que las altas, ya emitida y sin
     # cotización ni hilo de solicitud (cotizacion_id 0). Le abre su ficha y la manda a la hoja. Devuelve qué pasó
     limpio = lambda clave: " ".join(str(leido.get(clave) or "").split())
@@ -183,6 +185,7 @@ async def registrar_poliza(bot, leido: dict, compania: str, productor: str, pdf:
     db.actualizar_alta(
         alta_id, estado="emitida", emitida_en=ahora().strftime(FORMATO_FECHA),
         n_poliza=limpio("n_poliza") or None, vigencia=f"{desde} al {hasta}" if desde and hasta else None,
+        productor=productor or None,
     )
 
     await crear_ficha(bot, alta_id)
@@ -200,9 +203,10 @@ async def registrar_poliza(bot, leido: dict, compania: str, productor: str, pdf:
     else:
         renglones.append(f"✅ Cargada en la base, pero no pude abrir la ficha (¿existe el foro #{config.FORO_POLIZAS}?).")
     if hoja.activa():
-        hoja.anotar_para_cargar(alta_id, productor)
+        hoja.anotar_para_cargar(alta_id, dio_de_alta)
         renglones.append(
-            f"📊 En la hoja a nombre de **{productor}**." if await hoja.cargar(alta_id)
+            f"📊 En la hoja: dio de alta **{dio_de_alta}**, " + (f"productor **{productor}**." if productor else "sin productor.")
+            if await hoja.cargar(alta_id)
             else "⚠️ Google no respondió: la mando a la hoja sola en la próxima hora."
         )
     if clave_compania(compania) not in {clave_compania(c) for c in config.COMPANIAS}:
@@ -222,7 +226,7 @@ def mismas_personas(uno: str, otro: str) -> bool:
 
 async def leer_pdf_de_la_ficha(message: discord.Message, alta) -> list[str]:
     # Lee los PDFs que subieron a la ficha (la póliza, el certificado...) y completa lo que falte.
-    # Devuelve los avisos para el productor (si algo no coincide)
+    # Devuelve los avisos para el equipo (si algo no coincide)
     avisos, cambios = [], {}
     datos = db.datos_alta(alta)
     for adjunto in (a for a in message.attachments if es_pdf(a)):
@@ -256,23 +260,25 @@ class Polizas(commands.Cog):
     @app_commands.command(name="poliza", description="Cargar una póliza emitida por fuera de Cobi: subí el PDF y armo la ficha y la fila de la hoja")
     @app_commands.describe(
         pdf="El PDF de la póliza: saco todos los datos de ahí",
-        productor="Quién la emitió (si no lo elegís, vos)",
+        dio_de_alta="Quién la dio de alta, Santi o Eze (si no lo elegís, vos)",
+        productor="El que trajo al cliente y cobra comisión (casi nunca hay; podés escribir uno nuevo)",
         compania="Solo para cargarla a mano, sin PDF (podés escribir una nueva)",
     )
-    @app_commands.choices(productor=[app_commands.Choice(name=n[0], value=n[0]) for n in config.EQUIPO.values()])
+    @app_commands.choices(dio_de_alta=[app_commands.Choice(name=n[0], value=n[0]) for n in config.EQUIPO.values()])
     async def poliza(self, interaction: discord.Interaction, pdf: discord.Attachment | None = None,
-                     productor: str | None = None, compania: str | None = None):
+                     dio_de_alta: str | None = None, productor: str | None = None, compania: str | None = None):
         if interaction.user.id not in config.EQUIPO:
             await interaction.response.send_message("Esto es solo para los del equipo 🙏", ephemeral=True)
             return
-        productor = productor or config.EQUIPO[interaction.user.id][0]
+        dio_de_alta = dio_de_alta or config.EQUIPO[interaction.user.id][0]
+        productor = productor.strip().title() if productor and productor.strip() else None
 
         # Sin PDF: la ventanita para cargarla a mano (ahí sí hace falta saber la compañía)
         if pdf is None:
             if not compania:
                 await interaction.response.send_message("Adjuntá el PDF de la póliza en **pdf** 📎 (o elegí la **compania** para cargarla a mano).", ephemeral=True)
                 return
-            await interaction.response.send_modal(ModalPolizaNueva(compania.strip(), "Auto", productor))
+            await interaction.response.send_modal(ModalPolizaNueva(compania.strip(), "Auto", dio_de_alta, productor))
             return
         if not es_pdf(pdf):
             await interaction.response.send_message("Eso no es un PDF 🤔", ephemeral=True)
@@ -293,8 +299,12 @@ class Polizas(commands.Cog):
             donde = f"<#{ya['poliza_hilo_id']}>" if ya["poliza_hilo_id"] else "la base"
             await interaction.followup.send(f"👀 La póliza N° {leido['n_poliza']} ya estaba cargada 👉 {donde}", ephemeral=True)
             return
-        texto = await registrar_poliza(interaction.client, leido, leido.get("compania") or compania or "?", productor, pdf)
+        texto = await registrar_poliza(interaction.client, leido, leido.get("compania") or compania or "?", dio_de_alta, productor, pdf)
         await interaction.followup.send(texto, ephemeral=True)
+
+    @poliza.autocomplete("productor")
+    async def productor_autocompletar(self, interaction: discord.Interaction, actual: str):
+        return [app_commands.Choice(name=p, value=p) for p in hoja.productores_conocidos() if normalizar(actual) in normalizar(p)][:25]
 
     @poliza.autocomplete("compania")
     async def compania_autocompletar(self, interaction: discord.Interaction, actual: str):

@@ -33,12 +33,18 @@ async def _mandar(pedido: dict) -> dict:
     return resultado
 
 
-def armar_fila(alta, productor: str) -> list[str]:
-    # Mismas columnas que la hoja: Fecha alta · Nombre · Patente · Compañía · Productor · Comentarios
+def armar_fila(alta, dio_de_alta: str) -> list[str]:
+    # Mismas columnas que la hoja: Fecha alta · Nombre · Patente · Compañía · Dio de alta · Productor · Comentarios.
+    # "Dio de alta" es Santi o Eze; "Productor" es el que trajo al cliente y cobra comisión (casi siempre vacío)
     compania = config.COMPANIAS_ALTA.get(clave_compania(alta["compania"]), {}).get("nombre_hoja", alta["compania"] or "")
     datos = db.datos_alta(alta)
     patente = (datos.get("patente") or "").upper()
-    return [ahora().strftime("%d/%m/%Y"), nombre_del_asegurado(alta, datos), patente, compania, productor, ""]
+    return [ahora().strftime("%d/%m/%Y"), nombre_del_asegurado(alta, datos), patente, compania, dio_de_alta, alta["productor"] or "", ""]
+
+
+def productores_conocidos() -> list[str]:
+    # Los de config más los que ya se cargaron en alguna solicitud: así uno nuevo queda en el desplegable solo
+    return list(dict.fromkeys(config.PRODUCTORES + sorted(db.productores_en_la_base())))
 
 
 def nombre_del_asegurado(alta, datos: dict) -> str:
@@ -53,10 +59,10 @@ def estado(alta) -> dict:
     return json.loads(alta["hoja"]) if alta["hoja"] else {}
 
 
-def anotar_para_cargar(alta_id: int, productor: str):
+def anotar_para_cargar(alta_id: int, dio_de_alta: str):
     # Queda "pendiente" en la base hasta que la hoja confirme. Si Google falla, el loop de cada hora lo reintenta
     alta = db.obtener_alta(alta_id)
-    db.actualizar_alta(alta_id, hoja=json.dumps({"estado": "pendiente", "fila": armar_fila(alta, productor)}, ensure_ascii=False))
+    db.actualizar_alta(alta_id, hoja=json.dumps({"estado": "pendiente", "fila": armar_fila(alta, dio_de_alta)}, ensure_ascii=False))
 
 
 async def cargar(alta_id: int) -> bool:

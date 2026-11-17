@@ -25,6 +25,10 @@ CANAL_CHAT = "general"
 # El certificado de cobertura vale VIGENCIA_CERTIFICADO días
 CANAL_ALERTAS = CANAL_CHAT
 
+# Productores: los que nos traen clientes y cobran comisión (NO Santi ni Eze: ellos "dan de alta").
+# La mayoría de las solicitudes no tienen productor. Los que se van cargando a mano se suman solos al desplegable
+PRODUCTORES = ["Sebastián"]
+
 # Donde se sube el informe de débitos rechazados de la compañía: Cobi arma el mensaje para cada cliente
 CANAL_COBRANZAS = "cobranzas"
 DIAS_ALERTA_CERTIFICADO = 10

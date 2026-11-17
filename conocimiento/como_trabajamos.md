@@ -21,10 +21,16 @@ Lo que Cobi sabe de la oficina. Lo enseña el equipo; si algo cambia, se corrige
 ### ATM Seguros
 - Asegura autos y motos.
 - Las fotos tienen que estar **fechadas**. En moto, además, sacadas de día, con el motor y el chasis grabados y la cédula de la moto.
-- Las fotos las carga el productor en la web de ATM. Al terminar se toca **Continuar inspección** y la póliza **se emite en el momento**.
+- Las fotos las cargamos nosotros (Santi o Eze) en la web de ATM. Al terminar se toca **Continuar inspección** y la póliza **se emite en el momento**.
 
 ### Otras
 - También se trabajó con **Mercantil Andina** (aparece en la planilla de pólizas).
+
+## Quién es quién
+
+- **Santi y Eze dan de alta** las solicitudes (cotizan, cargan en la web de la compañía, emiten). En la hoja de pólizas figuran en la columna **"Dio de alta"**.
+- **Productor** es otra cosa: la persona que nos trajo al cliente y **cobra una comisión** por esa póliza (por ejemplo, Sebastián). **La mayoría de las pólizas no tienen productor.** En la hoja va en la columna **"Productor"**.
+- Ojo: Ezequiel Sosa también es el productor de seguros matriculado que figura ante las compañías (por ejemplo, en los informes de Nación). Eso no tiene que ver con la columna "Productor" de la oficina.
 
 ## El trámite
 

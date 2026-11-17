@@ -159,7 +159,8 @@ def puede_cerrar(alta, lista: list[dict]) -> bool:
 
 
 def encabezado(alta) -> str:
-    return f"📋 **Solicitud · {alta['cliente']}** · {alta['compania'] or '?'} · {alta['tipo'] or '?'}"
+    productor = f" · 🤝 Productor: **{alta['productor']}**" if alta["productor"] else ""
+    return f"📋 **Solicitud · {alta['cliente']}** · {alta['compania'] or '?'} · {alta['tipo'] or '?'}{productor}"
 
 
 def tildes(lista: list[dict]) -> str:
@@ -360,7 +361,7 @@ async def leer_imagenes(message: discord.Message, alta) -> tuple[dict, list[str]
     caras_gnc = int(db.datos_alta(alta).get("gnc_cedula_caras", 0))
     for doc in leidos:
         if doc["tipo"] not in documentos.CLAVES or doc["tipo"] == "otro":
-            # No es un documento: nos guardamos qué es para contárselo al productor
+            # No es un documento: nos guardamos qué es para contárselo al equipo
             otros.append(doc["datos"].get("que_es") or "una foto que no es un documento")
             continue
         if doc["tipo"] == "gnc_cedula":
@@ -479,7 +480,7 @@ class ModalCargarAMano(discord.ui.Modal, title="Cargar o corregir datos"):
         self.cbu = discord.ui.TextInput(label="CBU (si te lo pasaron escrito)", default=d.get("cbu"), required=False, max_length=30)
         self.correcciones = discord.ui.TextInput(
             label="Corregir otros datos (uno por línea)", style=discord.TextStyle.paragraph, required=False, max_length=500,
-            placeholder="Campo: valor\nPor ejemplo:\nN° de motor: ABC12345\nDomicilio: Av. Mitre 123, Avellaneda",
+            placeholder="Campo: valor\nPor ejemplo:\nN° de motor: ABC12345\nProductor: Sebastián",
         )
         for campo in (self.mail, self.telefono, self.cbu, self.correcciones):
             self.add_item(campo)
@@ -497,9 +498,14 @@ class ModalCargarAMano(discord.ui.Modal, title="Cargar o corregir datos"):
         # Lo escriben como "Campo: valor": buscamos el campo por su nombre lindo ("N° de motor") o por su clave ("motor")
         por_nombre = {normalizar(nombre): clave for clave, nombre in documentos.NOMBRES.items()}
         por_nombre.update({normalizar(clave): clave for clave in documentos.NOMBRES})
+        productor = None
         for linea in self.correcciones.value.splitlines():
             campo, separador, valor = linea.partition(":")
             if not separador or not valor.strip():
+                continue
+            # El productor (el que trajo al cliente y cobra comisión) va aparte de los datos del cliente
+            if normalizar(campo) == "productor":
+                productor = valor.strip()
                 continue
             clave = por_nombre.get(normalizar(campo))
             if clave and clave not in ("tarjeta_numero",):
@@ -509,6 +515,9 @@ class ModalCargarAMano(discord.ui.Modal, title="Cargar o corregir datos"):
 
         if nuevos:
             db.sumar_datos_alta(self.alta_id, nuevos)
+        if productor is not None:
+            sin = normalizar(productor) in ("no", "ninguno", "ninguna", "sin productor", "-")
+            db.actualizar_alta(self.alta_id, productor=None if sin else productor.title())
         if no_entendi:
             avisos.append(f"No entendí estos campos: {', '.join(no_entendi)}. Usá los nombres como aparecen en la solicitud de la lista (por ejemplo \"N° de motor\").")
         if avisos:
@@ -675,8 +684,8 @@ async def acomodar_despues_del_cambio(interaction: discord.Interaction, alta, ac
     # La hoja de Google de emitidas: al emitir se carga la fila, y si vuelven atrás desde emitida se saca
     if hoja.activa():
         if accion == "emitida":
-            productor = config.EQUIPO.get(interaction.user.id, [interaction.user.display_name])[0]
-            hoja.anotar_para_cargar(alta_id, productor)
+            dio_de_alta = config.EQUIPO.get(interaction.user.id, [interaction.user.display_name])[0]
+            hoja.anotar_para_cargar(alta_id, dio_de_alta)
             if not await hoja.cargar(alta_id) and hilo is not None:
                 await hilo.send("⚠️ No pude cargarla en la hoja de emitidas (Google no contestó). La reintento sola en un rato.")
         elif accion == "deshacer" and alta["estado"] == "emitida":

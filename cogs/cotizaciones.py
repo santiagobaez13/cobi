@@ -6,6 +6,7 @@ from discord.ext import commands
 
 import config
 import db
+import hoja
 import ia
 from cogs.altas import iniciar_alta
 from util import buscar_etiqueta, mismo_nombre
@@ -94,7 +95,8 @@ def botones_no_avanzo(cotizacion_id: int) -> discord.ui.View:
     return vista
 
 
-async def crear_alta(interaction: discord.Interaction, cotizacion_id: int, cobertura: str, cliente: str, telefono: str, n_solicitud: str) -> discord.Thread:
+async def crear_alta(interaction: discord.Interaction, cotizacion_id: int, cobertura: str, cliente: str, telefono: str, n_solicitud: str,
+                     productor: str | None = None) -> discord.Thread:
     # Acepta también el nombre viejo ("altas"), por si el foro todavía no se renombró a "solicitudes"
     foro = discord.utils.find(lambda f: any(mismo_nombre(f.name, n) for n in (config.FORO_ALTAS, "altas")), interaction.guild.forums)
     if foro is None:
@@ -131,6 +133,8 @@ async def crear_alta(interaction: discord.Interaction, cotizacion_id: int, cober
     )
     if n_solicitud:
         db.actualizar_alta(alta_id, n_solicitud=n_solicitud)
+    if productor:
+        db.actualizar_alta(alta_id, productor=productor)
     await iniciar_alta(creado.thread, alta_id)
     return creado.thread
 
@@ -161,6 +165,15 @@ class ModalAcepto(discord.ui.Modal, title="¡Aceptó! Armemos la solicitud"):
         self.telefono = discord.ui.TextInput(placeholder="Por ejemplo: 11 2345-6789", max_length=30, required=False)
         self.add_item(discord.ui.Label(text="Teléfono (WhatsApp)", description="Opcional, lo podés pasar después", component=self.telefono))
 
+        # El productor es el que nos trajo al cliente y cobra comisión. Casi nunca hay: si no eligen nada, queda sin productor.
+        # Uno nuevo se carga en el hilo con ✍️ Cargar a mano ("Productor: Nombre") y de ahí en más aparece acá
+        self.productor = discord.ui.Select(
+            placeholder="Sin productor",
+            options=[discord.SelectOption(label=p, value=p) for p in hoja.productores_conocidos()[:25]],
+            required=False, min_values=0, max_values=1,
+        )
+        self.add_item(discord.ui.Label(text="Productor (si hay)", description="El que trajo al cliente y cobra comisión", component=self.productor))
+
     async def on_submit(self, interaction: discord.Interaction):
         if isinstance(self.cobertura, discord.ui.Select):
             cobertura = self.cobertura.values[0]
@@ -169,6 +182,7 @@ class ModalAcepto(discord.ui.Modal, title="¡Aceptó! Armemos la solicitud"):
         cliente = self.cliente.value.strip()
         telefono = self.telefono.value.strip()
         n_solicitud = self.solicitud.value.strip()
+        productor = self.productor.values[0] if self.productor.values else None
         quien = interaction.user.display_name
 
         if not db.tomar_cotizacion(self.cotizacion_id, quien):
@@ -178,7 +192,7 @@ class ModalAcepto(discord.ui.Modal, title="¡Aceptó! Armemos la solicitud"):
         # La IA tarda unos segundos: le avisamos a Discord que estamos laburando
         await interaction.response.defer(ephemeral=True, thinking=True)
         try:
-            hilo = await crear_alta(interaction, self.cotizacion_id, cobertura, cliente, telefono, n_solicitud)
+            hilo = await crear_alta(interaction, self.cotizacion_id, cobertura, cliente, telefono, n_solicitud, productor)
         except ErrorAlta as e:
             db.cambiar_estado(self.cotizacion_id, "pendiente", quien)
             await interaction.followup.send(str(e), ephemeral=True)
